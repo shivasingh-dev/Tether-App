@@ -15,10 +15,11 @@ import { useFormik } from "formik";
 import { sendPhoneNumOtp, verifyPhoneOtp, sendEmailOtpFun, verifyEmailOtp, loginWithEmail, updateUserProfile } from '../services/UserService'
 import { ActivityIndicator } from "react-native";
 import Toast from 'react-native-toast-message';
-import {stepOneInitialValues, stepTwoInitialValues, stepThreeInitialValues, stepFourInitialValues, loginInitialValues } from '../YupSchema/YupSchema'
+import { stepOneInitialValues, stepTwoInitialValues, stepThreeInitialValues, stepFourInitialValues, loginInitialValues } from '../YupSchema/YupSchema'
 
 export default function SignUpScreen({ navigation }) {
 
+  const setUser = useUserStore((state) => state.setUser)
   const stepOneFormik = useFormik({
     initialValues: stepOneInitialValues,
     validationSchema: stepOneSchema,
@@ -32,11 +33,11 @@ export default function SignUpScreen({ navigation }) {
       } catch (error) {
         // setError(error.message)
         // console.error("Error in step 1 formik", error)
-         Toast.show({
-            type: 'error',
-            text1: 'Failed',
-            text2: error.message
-          })
+        Toast.show({
+          type: 'error',
+          text1: 'Failed',
+          text2: error.message
+        })
       } finally {
         setIsLoading(false)
       }
@@ -57,7 +58,7 @@ export default function SignUpScreen({ navigation }) {
         setError(null)
         const response = await verifyPhoneOtp(phoneNumber, phoneOtpString)
         if (response?.success) {
-           Toast.show({
+          Toast.show({
             type: 'success',
             text1: 'Success',
             text2: 'Number verified successfully'
@@ -67,11 +68,11 @@ export default function SignUpScreen({ navigation }) {
       } catch (error) {
         // setError(error.message || "Number Verification failed")
         // console.error("Error in step 2 fomik", error)
-         Toast.show({
-            type: 'error',
-            text1: 'failed',
-            text2: error.message,
-          })
+        Toast.show({
+          type: 'error',
+          text1: 'failed',
+          text2: error.message,
+        })
       } finally {
         setIsLoading(false)
       }
@@ -93,10 +94,10 @@ export default function SignUpScreen({ navigation }) {
         // setError(error.message)
         // console.error("Error in Formik step 3", error)
         Toast.show({
-            type: 'error',
-            text1: 'Failed',
-            text2: error.message
-          })
+          type: 'error',
+          text1: 'Failed',
+          text2: error.message
+        })
       }
       finally {
         setIsLoading(false)
@@ -119,22 +120,22 @@ export default function SignUpScreen({ navigation }) {
         if (response?.success) {
           const userToken = response.token
           setUser(userToken)
-           Toast.show({
+          Toast.show({
             type: 'success',
             text1: 'Success',
             text2: 'Email Verified'
           })
-          navigation?.navigate('Chat_List_Screen')
+          navigation?.navigate('Home_Screen')
           setIsVerifyEmailOtp(true)
         }
       } catch (error) {
         // setError(error.message, "Email Verification failed")
         // console.error("Error in Step 4 formik", error)
         Toast.show({
-            type: 'error',
-            text1: 'Failed',
-            text2: error.message
-          })
+          type: 'error',
+          text1: 'Failed',
+          text2: error.message
+        })
       } finally {
         setIsLoading(false)
       }
@@ -146,28 +147,25 @@ export default function SignUpScreen({ navigation }) {
     validationSchema: loginSchema,
     onSubmit: async (values) => {
       try {
-        setIsLoading(true)
-        const response = await loginWithEmail(values.email, values.password)
+        setIsLoading(true);
+        const response = await loginWithEmail(values.email, values.password);
         if (response.success) {
-          const userData = response.user
-          setUser(userData)
+          const userData = response.user;
+          setUser(userData, userData.token);
           Toast.show({
             type: 'success',
             text1: 'Success',
-            text2: 'Welcome back to Tether'
-          })
-          navigation?.navigate('Chat_List_Screen')
+            text2: `Welcome back, ${userData.fullName || 'User'}`
+          });
         }
       } catch (error) {
-        // setError(error.message)
-        // console.error("Error in Login With Gmail", error)
         Toast.show({
-            type: 'error',
-            text1: 'Failed',
-            text2: error.message
-          })
+          type: 'error',
+          text1: 'Login Failed',
+          text2: error.message || 'Invalid credentials'
+        });
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
   })
@@ -197,10 +195,10 @@ export default function SignUpScreen({ navigation }) {
     } catch (error) {
       console.error("Error in onProfileSubmit", error)
     } finally {
-      setIsLoading(false) 
+      setIsLoading(false)
     }
   }
-  
+
 
   const phoneRef = useRef(null)
   const emailRef = useRef(null)
@@ -235,14 +233,13 @@ export default function SignUpScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [profilePicture, setProfilePicture] = useState(null)
-  
+
   const [selectedAvatar, setSelectedAvatar] = useState(avatars[0])
   const [profilePictureFile, setProfilePictureFile] = useState(null)
 
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const setUser = useUserStore((state) => state.setUser)
   const { theme, setTheme } = useThemeStore()
 
   const [loginEmail, setLoginEmail] = useState('')
@@ -709,18 +706,18 @@ export default function SignUpScreen({ navigation }) {
 
           <Text style={styles.formText}>Email</Text>
           <View style={[styles.inputRow, { borderColor: isFocused === 'loginEmail' ? '#2979ff' : '#2E3A59' }]} >
-           <Fontisto name='email' size={20} color="#888" />
-          <TextInput
-            onFocus={() => setIsFocused('loginEmail')}
-            onBlur={() => setIsFocused('')}
-            placeholder="you@example.com"
-            placeholderTextColor="#556080"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={loginFormik.values.email}
-            onChangeText={loginFormik.handleChange('email')}
-            style={styles.inputInner}
-          />
+            <Fontisto name='email' size={20} color="#888" />
+            <TextInput
+              onFocus={() => setIsFocused('loginEmail')}
+              onBlur={() => setIsFocused('')}
+              placeholder="you@example.com"
+              placeholderTextColor="#556080"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={loginFormik.values.email}
+              onChangeText={loginFormik.handleChange('email')}
+              style={styles.inputInner}
+            />
           </View>
           {loginFormik.errors.email && loginFormik.touched.email && (
             <Text style={styles.errorText}>{loginFormik.errors.email}</Text>
@@ -750,7 +747,7 @@ export default function SignUpScreen({ navigation }) {
             <Text style={styles.errorText}>{loginFormik.errors.password}</Text>
           )}
 
-          <TouchableOpacity disabled={isLoading || !loginFormik.isValid } activeOpacity={0.4} onPress={loginFormik.handleSubmit} >
+          <TouchableOpacity disabled={isLoading || !loginFormik.isValid} activeOpacity={0.4} onPress={loginFormik.handleSubmit} >
             <LinearGradient
               style={styles.otpCover}
               colors={['#2979ff', '#7c3aed']}
@@ -758,9 +755,9 @@ export default function SignUpScreen({ navigation }) {
               end={{ x: 1, y: 1 }}
             >
               {isLoading ? (<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }} >
-                  <ActivityIndicator size="small" color="#fff" style={{ marginRight: 10 }} />
-                  <Text style={styles.otpBtn} >Sigining In</Text>
-                </View>) : <Text style={styles.otpBtn} >Login</Text>}
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 10 }} />
+                <Text style={styles.otpBtn} >Sigining In</Text>
+              </View>) : <Text style={styles.otpBtn} >Login</Text>}
             </LinearGradient>
           </TouchableOpacity>
 

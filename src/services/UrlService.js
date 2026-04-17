@@ -1,7 +1,8 @@
 import axios from 'axios'
+import useUserStore from '../Store/useUserStore';
 
 
-const apiUrl = `http://localhost:8000/api/`
+const apiUrl = `http://10.122.167.250:8000/api/`
 
 
 const axiosInstance = axios.create({
@@ -10,9 +11,9 @@ const axiosInstance = axios.create({
 })
 
 axiosInstance.interceptors.request.use((config) => {
-  const user = useUserStore.getState().user;
-  if (user?.token) {
-    config.headers.Authorization = `Bearer ${user.token}`;
+  const token = useUserStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });

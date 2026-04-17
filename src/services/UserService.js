@@ -1,5 +1,5 @@
 import axiosInstance from './UrlService'
-
+import useUserStore from '../Store/useUserStore'
 
 export const sendPhoneNumOtp = async (phoneNumber, fullName) => {
   try {
@@ -57,9 +57,13 @@ export const updateUserProfile = async (updateData) => {
 
 export const checkAuth = async () => {
   try {
+    const token = useUserStore.getState().token;
+    console.log('=== CHECK AUTH TOKEN ===', token); // ← add karo
     const { data } = await axiosInstance.get('/auth/check-auth');
+    console.log('=== CHECK AUTH RESPONSE ===', data); // ← add karo
     return { isAuthenticated: data.success, user: data.data || null };
   } catch (error) {
+    console.log('=== CHECK AUTH ERROR ===', error); // ← add karo
     throw error?.response?.data || { message: error.message }
   }
 }

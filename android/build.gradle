@@ -1,21 +1,38 @@
 buildscript {
     ext {
-        buildToolsVersion = "36.0.0"
+        // Android 15 (API 35) sabse stable naya version hai
+        buildToolsVersion = "35.0.0"
         minSdkVersion = 24
         compileSdkVersion = 36
-        targetSdkVersion = 36
+        targetSdkVersion = 35
+
+        // NDK version jo aapne mention kiya tha (Sahi hai)
         ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.1.20"
+        
+        // Stable Kotlin version jo MMKV aur React Native ke saath sahi chalta hai
+        kotlinVersion = "1.9.22"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
+        // Android Gradle Plugin
         classpath("com.android.tools.build:gradle")
+        
+        // React Native Gradle Plugin
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        
+        // Kotlin Plugin (Variable use karna zaroori hai version ke liye)
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
