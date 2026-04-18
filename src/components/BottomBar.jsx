@@ -1,5 +1,3 @@
-// components/BottomTabBar.jsx
-
 import React from 'react';
 import {
   View,
@@ -8,103 +6,142 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import { colors } from '../constants/colors';
 
 const tabs = [
   {
     key: 'chats',
     label: 'Chats',
-    icon: (active) => (
-      <MaterialCommunityIcons
-        name={active ? 'message' : 'message-outline'}
-        size={26}
-        color={active ? '#00A884' : '#8A8A8A'}
-      />
-    ),
+    icon: 'chatbubbles',
+    iconOutline: 'chatbubbles-outline',
+    type: 'ionicons',
   },
   {
-    key: 'status',
+    key: 'updates',
     label: 'Updates',
-    icon: (active) => (
-      <MaterialCommunityIcons
-        name={active ? 'circle-slice-8' : 'circle-outline'}
-        size={26}
-        color={active ? '#00A884' : '#8A8A8A'}
-      />
-    ),
-  },
-  {
-    key: 'communities',
-    label: 'Communities',
-    icon: (active) => (
-      <MaterialCommunityIcons
-        name={active ? 'account-group' : 'account-group-outline'}
-        size={26}
-        color={active ? '#00A884' : '#8A8A8A'}
-      />
-    ),
+    icon: 'update',
+    iconOutline: 'update',
+    type: 'material',
   },
   {
     key: 'calls',
     label: 'Calls',
-    icon: (active) => (
-      <Ionicons
-        name={active ? 'call' : 'call-outline'}
-        size={24}
-        color={active ? '#00A884' : '#8A8A8A'}
-      />
-    ),
+    icon: 'call',
+    iconOutline: 'call-outline',
+    type: 'ionicons',
+  },
+  {
+    key: 'profile',
+    label: 'Profile',
+    icon: 'person-circle',
+    iconOutline: 'person-circle-outline',
+    type: 'ionicons',
   },
 ];
 
 const BottomBar = ({ activeTab, onTabPress }) => {
+
+  console.log('BottomBar received onTabPress:', typeof onTabPress);
+
   return (
     <View style={styles.container}>
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.key;
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tab}
-            onPress={() => onTabPress(tab.key)}
-            activeOpacity={0.7}
-          >
-            {tab.icon(isActive)}
-            <Text style={[styles.label, isActive && styles.activeLabel]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+      {/* Gradient top border */}
+      <LinearGradient
+        colors={[colors.primary, colors.secondary, colors.tertiary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.topBorder}
+      />
+
+      <View style={styles.tabsContainer}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const IconComponent =
+            tab.type === 'ionicons' ? Ionicons : MaterialCommunityIcons;
+
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tab}
+              onPress={() => {onTabPress(tab.key)
+                console.log('BottomBar tab clicked:', tab.key); 
+              }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.iconContainer,
+                  isActive && styles.iconContainerActive,
+                ]}
+              >
+                <IconComponent
+                  name={isActive ? tab.icon : tab.iconOutline}
+                  size={24}
+                  color={isActive ? colors.primary : colors.iconSecondary}
+                />
+              </View>
+              <Text style={[styles.label, isActive && styles.activeLabel]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 0.5,
-    borderTopColor: '#2A2A2A',
-    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
-    paddingTop: 10,
-    paddingHorizontal: 8,
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
+
+  topBorder: {
+    height: 1.5,
+    width: '100%',
+  },
+
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    paddingTop: 8,
+    paddingHorizontal: 4,
+  },
+
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
   },
+
+  iconContainer: {
+    padding: 4,
+    borderRadius: 12,
+  },
+
+  iconContainerActive: {
+    backgroundColor: 'rgba(96, 165, 250, 0.15)',
+  },
+
   label: {
     fontSize: 11,
-    color: '#8A8A8A',
+    color: colors.textMuted,
     fontWeight: '500',
   },
+
   activeLabel: {
-    color: '#00A884',
-    fontWeight: '700',
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
 

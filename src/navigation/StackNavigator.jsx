@@ -1,19 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import useUserStore from '../Store/useUserStore';
 import { checkAuth } from '../Services/UserService';
+import { disconnectSocket, initializeSocket } from "../Services/ChatServices";
+
+// Screens import
 import IntroScreen from '../screens/IntroScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import SignUpScreen from '../screens/SignUpScreen';
-import ChatListScreen from '../screens/ChatListScreen';
 import HomeScreen from '../screens/HomeScreen';
+import StatusScreen from '../screens/StatusScreen'
+import SettingsScreen from '../screens/SettingsScreen'
+import CallHistoryScreen from '../screens/CallHistoryScreen'
+import UserDetailsScreen from '../screens/UserDetailsScreen'
+
+// Store import
+import useUserStore from '../Store/useUserStore';
+import {useChatStore} from '../Store/useChatStore'
 
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigator() {
-  const { isAuthenticated, setUser, clearUser } = useUserStore();
+
+  const { isAuthenticated, setUser, clearUser, user } = useUserStore();
+  const { setCurrentUser, initSocketListeners, cleanUp, fetchConversations } =
+    useChatStore();
+
   const [isChecking, setIsChecking] = useState(true);
 
   const verifyAuth = async () => {
@@ -25,7 +38,7 @@ export default function StackNavigator() {
         clearUser();
       }
     } catch (error) {
-      clearUser();
+      console.log('Auth check failed, keeping existing session', error);
     } finally {
       setIsChecking(false);
     }
@@ -34,6 +47,27 @@ export default function StackNavigator() {
   useEffect(() => {
     verifyAuth();
   }, []);
+
+  useEffect(() => {
+    let socket;
+    if (isAuthenticated && user?._id) {
+      socket = initializeSocket(); 
+
+      if (socket) {
+        setCurrentUser(user);
+        initSocketListeners(); 
+        fetchConversations();  
+        console.log("Socket initialized for user:", user._id);
+      }
+    }
+
+    return () => {
+      if (socket) {
+        disconnectSocket();
+        console.log("Socket disconnected");
+      }
+    };
+  }, [isAuthenticated, user?._id]); 
 
   if (isChecking) {
     return (
@@ -50,20 +84,26 @@ export default function StackNavigator() {
     );
   }
 
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Intro Screen — hamesha sabse pehle */}
-      <Stack.Screen name="Intro_Screen" component={IntroScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false, 
+      animation: 'fade', 
+    animationDuration: 100, 
+      }}>
 
       {isAuthenticated ? (
         // Authenticated — protected screens
         <Stack.Group>
           <Stack.Screen name="Home_Screen" component={HomeScreen} />
-          <Stack.Screen name="Chat_List_Screen" component={ChatListScreen} />
+          <Stack.Screen name="Status_Screen" component={StatusScreen} />
+          <Stack.Screen name="Settings_Screen" component={SettingsScreen} />
+          <Stack.Screen name="Call_Screen" component={CallHistoryScreen} />
+          <Stack.Screen name='UserDetails' component={UserDetailsScreen} />
         </Stack.Group>
       ) : (
         // Not authenticated — public screens
         <Stack.Group>
+          <Stack.Screen name="Intro_Screen" component={IntroScreen} />
           <Stack.Screen name="Welcome_Screen" component={WelcomeScreen} />
           <Stack.Screen name="Register_Screen" component={RegisterScreen} />
           <Stack.Screen name="SignUp_Screen" component={SignUpScreen} />
