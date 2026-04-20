@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
   FlatList,
+  Image,
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ import { useChatStore } from '../Store/useChatStore';
 import useLayoutStore from '../Store/useLayoutStore';
 import useUserStore from '../Store/useUserStore';
 import BottomBarNavigator from '../components/BottomBarNavigator'
+import formatTimestamp from '../Utils/formatTime';
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('chats');
@@ -27,6 +29,15 @@ export default function HomeScreen() {
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = useRef(null);
+  const [, setTick] = useState(0);
+
+  // Force re-render every minute to update "Just now" timestamps
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(prev => prev + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Process conversations
   const convList = Array.isArray(conversations)
@@ -58,25 +69,10 @@ export default function HomeScreen() {
     setActiveTab('chats');
   }, []);
 
-  // Format timestamp
-  const formatTimestamp = timestamp => {
-    if (!timestamp) return '';
-    const now = new Date();
-    const messageDate = new Date(timestamp);
-    const diffMs = now - messageDate;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffHours < 48) return 'Yesterday';
-
-    const days = Math.floor(diffHours / 24);
-    if (days < 7)
-      return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
-        messageDate.getDay()
-      ];
-    return messageDate.toLocaleDateString();
-  };
+  // on screen mounted set active tab
+   useEffect(() => {
+    setActiveTab('chats');
+  }, []);
 
   const renderChatItem = ({ item }) => {
     const isSelected = selectedContact?.conversationId === item.conversationId;

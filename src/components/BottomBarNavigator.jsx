@@ -9,7 +9,6 @@ export default function BottomBarNavigator() {
   const { activeTab, setActiveTab } = useLayoutStore();
 
   const handleTabPress = (tabKey) => {
-    console.log('Tab Pressed', tabKey)
     setActiveTab(tabKey);
     
     const routes = {
@@ -19,13 +18,10 @@ export default function BottomBarNavigator() {
       profile: 'Settings_Screen',
     };
 
-     console.log('Navigating to:', routes[tabKey]); 
-
     if (routes[tabKey]) {
       navigation.navigate(routes[tabKey]);
     }
 
-    console.log('Current activeTab:', activeTab);
   };
 
   return <BottomBar activeTab={activeTab} onTabPress={handleTabPress} />;

@@ -1,21 +1,17 @@
 import { io } from "socket.io-client";
 import useUserStore from "../Store/useUserStore";
+import { API_BASE_URL } from "./UrlService";
 
 let socket = null;
-
-const apiUrl = `http://10.150.128.250:8000`
 
 export const initializeSocket = () => {
   if (socket) return socket;
 
-  
   const user = useUserStore.getState().user;
 
-  const BACKEND_URL = apiUrl;
-
-  socket = io(BACKEND_URL, {
+  socket = io(API_BASE_URL, {
     withCredentials: true,
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
   });

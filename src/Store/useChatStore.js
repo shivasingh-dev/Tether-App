@@ -167,7 +167,6 @@ export const useChatStore = create((set, get) => ({
     try {
       const { data } = await axiosInstance.get("/chats/conversations");
       set({ conversations: data, loading: false });
-      // get().initSocketListeners();
       return data;
     } catch (error) {
       set({
@@ -326,20 +325,13 @@ export const useChatStore = create((set, get) => ({
 
     const { currentConversation, messages, conversations } = get();
     const currentUser = useUserStore.getState().user;
-
-    console.log("=== RECEIVE MESSAGE DEBUG ===");
-    console.log("1. conversations:", JSON.stringify(conversations, null, 2));
-    console.log("2. message:", JSON.stringify(message, null, 2));
-    console.log("3. isArray:", Array.isArray(conversations));
-    console.log("4. has .data:", !!conversations?.data);
-
     const incomingConvId =
       message.conversation?._id?.toString() || message.conversation?.toString();
     const activeConvId =
       currentConversation?._id?.toString() || currentConversation?.toString();
 
     // --- 1. MESSAGE AREA UPDATE ---
-    if (activeConvId && activeConvId === incomingConvId) { // ← activeConvId truthy check
+    if (activeConvId && activeConvId === incomingConvId) { 
   const messageExists = messages.some((msg) => msg._id === message._id);
   if (!messageExists) {
     set((state) => ({
@@ -392,8 +384,7 @@ export const useChatStore = create((set, get) => ({
       }
       return conv;
     });
-
-    console.log("=== UPDATED CONVERSATIONS ===", updatedConversations);
+    
     console.log(
       "=== SET CONVERSATIONS ===",
       Array.isArray(conversations)
@@ -411,8 +402,7 @@ export const useChatStore = create((set, get) => ({
 
   // mark as read
   markMessagesAsRead: async () => {
-    const { messages, currentUser: storeUser, currentConversation  } = get();
-    const currentUser = storeUser || useUserStore.getState().user;
+    const { messages, currentUser, currentConversation  } = get();
 
     // ✅ Agar currentConversation null hai toh mat karo
   if (!messages.length || !currentUser || !currentConversation) return;
@@ -440,10 +430,6 @@ export const useChatStore = create((set, get) => ({
 
       const socket = getSocket();
       if (socket) {
-        // socket.emit("message_read", {
-        //   messageIds: unreadIds,
-        //   senderId: messages[0]?.sender?._id,
-        // });
         const otherPersonId = messages.find(
           (msg) => msg.sender?._id !== currentUser?._id,
         )?.sender?._id;

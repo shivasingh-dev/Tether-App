@@ -145,15 +145,17 @@ export default function SignUpScreen({ navigation }) {
         setIsLoading(true);
         const response = await verifyEmailOtp(email, emailOtpString);
         if (response?.success) {
-          const userToken = response.token;
-          setUser(userToken);
+          const userToken = response.Token || response.token;
+          // Set just the token first, the user data will be fetched by checkAuth in StackNavigator or following checkAuth call
+          setUser(null, userToken);
+          
           Toast.show({
             type: 'success',
             text1: 'Success',
             text2: 'Email Verified',
           });
-          navigation?.navigate('Home_Screen');
           setIsVerifyEmailOtp(true);
+          navigation?.navigate('Home_Screen');
         }
       } catch (error) {
         // setError(error.message, "Email Verification failed")

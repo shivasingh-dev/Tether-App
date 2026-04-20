@@ -44,8 +44,6 @@ const tabs = [
 
 const BottomBar = ({ activeTab, onTabPress }) => {
 
-  console.log('BottomBar received onTabPress:', typeof onTabPress);
-
   return (
     <View style={styles.container}>
       {/* Gradient top border */}
@@ -67,7 +65,6 @@ const BottomBar = ({ activeTab, onTabPress }) => {
               key={tab.key}
               style={styles.tab}
               onPress={() => {onTabPress(tab.key)
-                console.log('BottomBar tab clicked:', tab.key); 
               }}
               activeOpacity={0.7}
             >

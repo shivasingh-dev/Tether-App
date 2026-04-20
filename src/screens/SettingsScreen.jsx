@@ -17,6 +17,8 @@ import useThemeStore from '../Store/useThemeStore';
 import { logOutUser } from '../Services/UserService';
 import useUserStore from '../Store/useUserStore';
 import ThemeDialog from '../components/ThemeDialog';
+import BottomBarNavigator from '../components/BottomBarNavigator'
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -76,7 +78,7 @@ const SettingsScreen = () => {
   ];
 
   return (
-    <View style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
+    <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -230,7 +232,9 @@ const SettingsScreen = () => {
         visible={isThemeDialogOpen} 
         onClose={() => setIsThemeDialogOpen(false)} 
       />
-    </View>
+
+      <BottomBarNavigator />
+    </SafeAreaView>
   );
 };
 
@@ -266,7 +270,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 0,
     marginBottom: 16,
   },
   darkInput: {

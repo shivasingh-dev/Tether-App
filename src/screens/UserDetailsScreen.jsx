@@ -18,6 +18,7 @@ import Toast from 'react-native-toast-message';
 import useUserStore from '../Store/useUserStore';
 import { updateUserProfile } from '../Services/UserService';
 import useThemeStore from '../Store/useThemeStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const UserDetailsScreen = () => {
   const [name, setName] = useState('');
@@ -90,7 +91,7 @@ const UserDetailsScreen = () => {
       }
 
       if (profilePicture && field === 'profile') {
-        formData.append('media', {
+        formData.append('profilePicture', {
           uri: profilePicture.uri,
           type: profilePicture.type,
           name: profilePicture.name,
@@ -98,7 +99,8 @@ const UserDetailsScreen = () => {
       }
 
       const updated = await updateUserProfile(formData);
-      setUser(updated?.data);
+      const currentToken = useUserStore.getState().token;
+      setUser(updated?.data, currentToken);
       setProfilePicture(null);
       setPreview(null);
 
@@ -149,7 +151,7 @@ const UserDetailsScreen = () => {
   };
 
   return (
-    <View style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
+    <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -378,7 +380,7 @@ const UserDetailsScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

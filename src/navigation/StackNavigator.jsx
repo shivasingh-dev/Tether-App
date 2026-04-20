@@ -33,7 +33,8 @@ export default function StackNavigator() {
     try {
       const result = await checkAuth();
       if (result?.isAuthenticated) {
-        setUser(result.user);
+        const currentToken = useUserStore.getState().token;
+        setUser(result.user, currentToken);
       } else {
         clearUser();
       }
@@ -57,7 +58,7 @@ export default function StackNavigator() {
         setCurrentUser(user);
         initSocketListeners(); 
         fetchConversations();  
-        console.log("Socket initialized for user:", user._id);
+        // console.log("Socket initialized for user:", user._id);
       }
     }
 
