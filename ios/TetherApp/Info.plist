@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Audio messages ke liye mic chahiye</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Images send karne ke liye gallery access chahiye</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>We need access to your photo library to update your profile picture</string>
 		<key>NSCameraUsageDescription</key>

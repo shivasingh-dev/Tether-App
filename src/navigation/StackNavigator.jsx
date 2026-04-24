@@ -14,6 +14,8 @@ import StatusScreen from '../screens/StatusScreen'
 import SettingsScreen from '../screens/SettingsScreen'
 import CallHistoryScreen from '../screens/CallHistoryScreen'
 import UserDetailsScreen from '../screens/UserDetailsScreen'
+import ChatScreen from '../screens/ChatScreen'
+import MessageBubble from '../components/MessageBubble'
 
 // Store import
 import useUserStore from '../Store/useUserStore';
@@ -100,6 +102,7 @@ export default function StackNavigator() {
           <Stack.Screen name="Settings_Screen" component={SettingsScreen} />
           <Stack.Screen name="Call_Screen" component={CallHistoryScreen} />
           <Stack.Screen name='UserDetails' component={UserDetailsScreen} />
+          <Stack.Screen name='Chat_Screen' component={ChatScreen} />
         </Stack.Group>
       ) : (
         // Not authenticated — public screens

@@ -84,7 +84,7 @@ export const checkAuth = async () => {
 
 export const logOutUser = async () => {
   try {
-    const response = await axiosInstance.get('/auth/log-out')
+    const response = await axiosInstance.get('/update/log-out')
     return response.data
   } catch (error) {
     throw error?.response?.data || {message: error.message}

@@ -225,12 +225,8 @@ export const useChatStore = create((set, get) => ({
   },
 
   // send message in real time
-  sendMessage: async (formData) => {
-    const senderId = formData.get("senderId");
-    const receiverId = formData.get("receiverId");
-    const media = formData.get("media");
-    const content = formData.get("content");
-    const messageStatus = formData.get("messageStatus");
+  sendMessage: async (messageDataObj) => {
+    const { senderId, receiverId, media, content, messageStatus } = messageDataObj;
 
     const socket = getSocket();
 
@@ -252,21 +248,30 @@ export const useChatStore = create((set, get) => ({
 
     // temp message before actual response
     const tempId = `temp-${Date.now()}`;
+
+    // React Native mein URL.createObjectURL nahi hota
+    // media object { uri, type, name } hota hai
+    let previewUri = null;
+    if (media && typeof media === "object" && media.uri) {
+      previewUri = media.uri;
+    }
+
     const optimisticMessage = {
       _id: tempId,
       sender: { _id: senderId },
       receiver: { _id: receiverId },
       conversation: conversationId,
-      imageOrVideoUrl:
-        media && typeof media !== "string" ? URL.createObjectURL(media) : null,
+      imageOrVideoUrl: previewUri,
       content: content,
       contentType: media
-        ? media.type.startsWith("image")
+        ? (media.type || "").startsWith("image")
           ? "image"
-          : "video"
+          : (media.type || "").startsWith("audio")
+            ? "audio"
+            : "video"
         : "text",
       createdAt: new Date().toISOString(),
-      messageStatus,
+      messageStatus: messageStatus || "sent",
     };
 
     set((state) => ({
@@ -274,6 +279,22 @@ export const useChatStore = create((set, get) => ({
     }));
 
     try {
+      // Create FormData internally for the request
+      const formData = new FormData();
+      formData.append("senderId", senderId);
+      formData.append("receiverId", receiverId);
+      if (conversationId) formData.append("conversationId", conversationId);
+      if (content) formData.append("content", content);
+      if (messageStatus) formData.append("messageStatus", messageStatus);
+      
+      if (media) {
+        formData.append("media", {
+          uri: media.uri,
+          type: media.type || 'image/jpeg',
+          name: media.name || 'media.jpg',
+        });
+      }
+
       const { data } = await axiosInstance.post(
         "/chats/send-message",
         formData,

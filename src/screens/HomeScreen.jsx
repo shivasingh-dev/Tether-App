@@ -19,7 +19,7 @@ import useUserStore from '../Store/useUserStore';
 import BottomBarNavigator from '../components/BottomBarNavigator'
 import formatTimestamp from '../Utils/formatTime';
 
-export default function HomeScreen() {
+export default function HomeScreen({navigation}) {
   const [activeTab, setActiveTab] = useState('chats');
   const [searchTerms, setSearchTerms] = useState('');
 
@@ -30,6 +30,11 @@ export default function HomeScreen() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = useRef(null);
   const [, setTick] = useState(0);
+
+  const handleChatPress = (item) => {
+    setSelectedContact(item)
+    navigation?.navigate('Chat_Screen')
+  }
 
   // Force re-render every minute to update "Just now" timestamps
   useEffect(() => {
@@ -76,14 +81,14 @@ export default function HomeScreen() {
 
   const renderChatItem = ({ item }) => {
     const isSelected = selectedContact?.conversationId === item.conversationId;
-
+    
     return (
-      <TouchableOpacity
+      <TouchableOpacity 
         style={[
           styles.chatItem,
           isSelected ? styles.chatItemSelected : styles.chatItemUnselected,
         ]}
-        onPress={() => setSelectedContact(item)}
+        onPress={() => handleChatPress(item)}
         activeOpacity={0.7}
       >
         {/* Avatar */}
