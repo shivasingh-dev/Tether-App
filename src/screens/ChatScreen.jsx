@@ -75,25 +75,6 @@ const formatDuration = ms => {
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 };
 
-const EMOJIS = [
-  '😀',
-  '😂',
-  '😍',
-  '🥰',
-  '😎',
-  '🤔',
-  '👍',
-  '❤️',
-  '🔥',
-  '🎉',
-  '😢',
-  '🙏',
-  '💪',
-  '✅',
-  '🚀',
-  '👏',
-];
-
 // ================================================================
 //  ChatScreen
 // ================================================================
@@ -103,6 +84,9 @@ const ChatScreen = ({ navigation }) => {
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreviewUri, setFilePreviewUri] = useState(null);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ visible: false, type: null });
+  const [isClearing, setIsClearing] = useState(false);
 
   // 🎤 AUDIO RECORDING STATES
   const [isRecording, setIsRecording] = useState(false);
@@ -143,7 +127,7 @@ const ChatScreen = ({ navigation }) => {
     resetChatState,
     addReactions,
     deleteMessage,
-    initSocketListeners,
+    clearChat,
   } = useChatStore();
 
   const receiverId = selectedContact?.user?._id || selectedContact?._id;
@@ -162,7 +146,6 @@ const ChatScreen = ({ navigation }) => {
       setCurrentConversation(convId);
       fetchMessages(convId);
     }
-    initSocketListeners();
     return () => {
       resetChatState();
       // 🎤 Cleanup: Recording band karo agar chal rahi hai
@@ -197,13 +180,6 @@ const ChatScreen = ({ navigation }) => {
     }
   }, [messages]);
 
-  // ================================================================
-  //  🎤 AUDIO RECORDING FUNCTIONS
-  // ================================================================
-
-  /**
-   * Recording shuru karo (Mic button press and hold karne par)
-   */
   const startRecording = async () => {
     try {
       // Check if audio recorder is available
@@ -260,9 +236,6 @@ const ChatScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Recording stop karo aur audio file send karo (Mic button release karne par)
-   */
   const stopRecording = async () => {
     try {
       if (!isRecording) return;
@@ -302,9 +275,6 @@ const ChatScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Recording cancel karo (Swipe to cancel gesture)
-   */
   const cancelRecording = async () => {
     try {
       if (!isRecording) return;
@@ -326,9 +296,6 @@ const ChatScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Audio message send karo
-   */
   const sendAudioMessage = async (audioUri, duration) => {
     if (!selectedContact || !user?._id) return;
 
@@ -350,9 +317,6 @@ const ChatScreen = ({ navigation }) => {
     }
   };
 
-  // ================================================================
-  //  IMAGE PICKER
-  // ================================================================
   const handlePickImage = () => {
     setShowAttachMenu(false);
     launchImageLibrary({ mediaType: 'mixed', quality: 0.85 }, async res => {
@@ -363,7 +327,7 @@ const ChatScreen = ({ navigation }) => {
       const fileSize = asset.fileSize || 0;
       const fileType = asset.type || 'image/jpeg';
 
-      // 📁 File size validation
+      // File size validation
       if (fileType.startsWith('image/')) {
         if (fileSize > FILE_SIZE_LIMITS.IMAGE.MAX_SIZE) {
           Alert.alert(
@@ -466,7 +430,6 @@ const ChatScreen = ({ navigation }) => {
     [user, addReactions, deleteMessage],
   );
 
-  // 🎤 Send button ya Mic button decide karo
   // Agar message ya file selected hai to Send button, warna Mic button
   const showSend = message.trim().length > 0 || !!selectedFile;
 
@@ -478,9 +441,6 @@ const ChatScreen = ({ navigation }) => {
     ? `Last seen ${formatLastSeen(lastSeen)}`
     : 'Offline';
 
-  // ================================================================
-  //  RENDER
-  // ================================================================
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
@@ -533,13 +493,63 @@ const ChatScreen = ({ navigation }) => {
               color={online ? colors.iconPrimary : colors.textMuted}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.hBtn} activeOpacity={0.7}>
-            <MaterialIcons
-              name="more-vert"
-              size={22}
-              color={colors.iconPrimary}
-            />
-          </TouchableOpacity>
+          
+          <View>
+            <TouchableOpacity 
+              onPress={() => {
+                setShowActionMenu(!showActionMenu);
+                setShowEmojiPanel(false);
+                setShowAttachMenu(false);
+              }} 
+              style={styles.hBtn} 
+              activeOpacity={0.7}
+            >
+              <MaterialIcons
+                name="more-vert"
+                size={22}
+                color={colors.iconPrimary}
+              />
+            </TouchableOpacity>
+
+            <Modal
+              visible={showActionMenu}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowActionMenu(false)}
+            >
+              <TouchableOpacity
+                style={styles.menuOverlay}
+                activeOpacity={1}
+                onPress={() => setShowActionMenu(false)}
+              >
+                <View style={styles.actionMenu}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setConfirmModal({ visible: true, type: 'clear' });
+                      setShowActionMenu(false);
+                    }}
+                    style={styles.actionItem}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#93c5fd" />
+                    <Text style={styles.actionLbl}>Clear Chat</Text>
+                  </TouchableOpacity>
+                  <View style={styles.actionDivider} />
+                  <TouchableOpacity
+                    onPress={() => {
+                      setConfirmModal({ visible: true, type: 'block' });
+                      setShowActionMenu(false);
+                    }}
+                    style={styles.actionItem}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="ban-outline" size={18} color="#ef4444" />
+                    <Text style={[styles.actionLbl, { color: '#ef4444' }]}>Block User</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </View>
         </View>
 
         {/* MESSAGES */}
@@ -562,7 +572,7 @@ const ChatScreen = ({ navigation }) => {
           />
         )}
 
-        {/* 🎤 RECORDING BANNER (jab recording chal rahi ho) */}
+        {/* 🎤 RECORDING BANNER */}
         {isRecording && (
           <View style={styles.recBanner}>
             <View style={styles.recDot} />
@@ -713,13 +723,6 @@ const ChatScreen = ({ navigation }) => {
             maxLength={2000}
           />
 
-          {/* 🎤 SEND / MIC BUTTON - WhatsApp Style
-              ───────────────────────────────────────────────────────────────
-              ✅ showSend = true  → Send button (tap to send text/image)
-              ✅ showSend = false → Microphone button
-                                     • onPressIn  = recording start
-                                     • onPressOut = recording stop + auto send
-              ─────────────────────────────────────────────────────────────── */}
           {showSend ? (
             // Send Button (jab message ya image selected ho)
             <TouchableOpacity
@@ -732,8 +735,8 @@ const ChatScreen = ({ navigation }) => {
           ) : (
             // Microphone Button (jab kuch nahi hai)
             <TouchableOpacity
-              onPressIn={startRecording} // 🎤 Press = Recording shuru
-              onPressOut={stopRecording} // 🎤 Release = Recording band + Send
+              onPressIn={startRecording} 
+              onPressOut={stopRecording} 
               style={[styles.sendBtn, isRecording && styles.sendBtnRec]}
               activeOpacity={0.8}
             >
@@ -746,6 +749,81 @@ const ChatScreen = ({ navigation }) => {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* CONFIRMATION MODAL */}
+      <Modal
+        visible={confirmModal.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setConfirmModal({ visible: false, type: null })}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setConfirmModal({ visible: false, type: null })}
+        >
+          <View style={styles.modalContent}>
+            <View style={[styles.modalIconBox, { backgroundColor: confirmModal.type === 'block' ? 'rgba(239,68,68,0.1)' : 'rgba(37,99,235,0.1)' }]}>
+              <Ionicons 
+                name={confirmModal.type === 'block' ? 'alert-circle' : 'trash'} 
+                size={32} 
+                color={confirmModal.type === 'block' ? '#ef4444' : '#2563eb'} 
+              />
+            </View>
+
+            <Text style={styles.modalTitle}>
+              {confirmModal.type === 'block' ? 'Block this User?' : 'Clear Conversation?'}
+            </Text>
+            <Text style={styles.modalDesc}>
+              {confirmModal.type === 'block' 
+                ? "Are you sure? You won't be able to send or receive messages from this contact."
+                : "This will permanently delete all messages in this chat. This action cannot be undone."}
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                disabled={isClearing}
+                onPress={() => setConfirmModal({ visible: false, type: null })}
+                style={[styles.modalCancel, isClearing && { opacity: 0.5 }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={isClearing}
+                onPress={async () => {
+                  if (confirmModal.type === 'clear') {
+                    setIsClearing(true);
+                    const convId = selectedContact?.conversationId || selectedContact?.conversation?._id;
+                    const success = await clearChat(convId);
+                    setIsClearing(false);
+                    if (success) {
+                      setConfirmModal({ visible: false, type: null });
+                    } else {
+                      Alert.alert('Error', 'Failed to clear chat');
+                    }
+                  } else {
+                    setConfirmModal({ visible: false, type: null });
+                    console.log(`${confirmModal.type} confirmed`);
+                  }
+                }}
+                style={[
+                  styles.modalConfirm, 
+                  { backgroundColor: confirmModal.type === 'block' ? '#ef4444' : '#2563eb' },
+                  isClearing && { opacity: 0.7 }
+                ]}
+                activeOpacity={0.8}
+              >
+                {isClearing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalConfirmText}>Confirm</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -973,6 +1051,107 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   attachLbl: { fontSize: 13, color: '#bfdbfe' },
+
+  // Action Menu
+  actionMenu: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    backgroundColor: '#06234f',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(30,58,138,0.4)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
+    minWidth: 150,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  actionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  actionLbl: { fontSize: 13, color: '#bfdbfe', fontWeight: '500' },
+  actionDivider: { height: 1, backgroundColor: 'rgba(30,58,138,0.2)' },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#061838',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(96,165,250,0.1)',
+  },
+  modalIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: 'rgba(147,197,253,0.6)',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(30,58,138,0.4)',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#bfdbfe',
+  },
+  modalConfirm: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
 });
 
 export default ChatScreen;

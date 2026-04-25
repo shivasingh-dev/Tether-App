@@ -56,16 +56,25 @@ export default function HomeScreen({navigation}) {
         ? conv.unreadCount?.[user?._id] || 0
         : Number(conv.unreadCount || 0);
 
+    const isLastMsgDeleted = conv.lastMessage?.deletedFor?.includes(user?._id);
+
     return {
       conversationId: conv._id,
       user: otherUser,
-      lastMessage: conv.lastMessage,
+      lastMessage: isLastMsgDeleted ? null : conv.lastMessage,
       unreadCount: unread,
     };
   });
 
+  // Sort by latest message
+  const sortedContacts = contacts.sort((a, b) => {
+    const timeA = new Date(a.lastMessage?.createdAt || 0).getTime();
+    const timeB = new Date(b.lastMessage?.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+
   // Filter contacts
-  const filteredContacts = contacts?.filter(contact =>
+  const filteredContacts = sortedContacts?.filter(contact =>
     contact?.user?.fullName?.toLowerCase().includes(searchTerms.toLowerCase()),
   );
 
@@ -207,13 +216,22 @@ export default function HomeScreen({navigation}) {
       </View>
 
       {/* Chat List */}
-      <FlatList
-        data={filteredContacts}
-        renderItem={renderChatItem}
-        keyExtractor={item => item.conversationId}
-        contentContainerStyle={styles.chatList}
-        showsVerticalScrollIndicator={false}
-      />
+      {filteredContacts?.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>💬</Text>
+          <Text style={{ color: 'rgba(147,197,253,0.5)', fontSize: 14, textAlign: 'center' }}>
+            No chat found for <Text style={{ color: '#60a5fa', fontWeight: '600' }}>"{searchTerms}"</Text>
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredContacts}
+          renderItem={renderChatItem}
+          keyExtractor={item => item.conversationId}
+          contentContainerStyle={styles.chatList}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <BottomBarNavigator />
 

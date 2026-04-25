@@ -30,6 +30,7 @@ export const useChatStore = create((set, get) => ({
     socket.off("message_deleted");
     socket.off("reaction_updated");
     socket.off("message_status_update");
+    socket.off("chat_cleared");
 
     // listen for incoming message
     socket.on("receive_message", (message) => {
@@ -102,6 +103,36 @@ export const useChatStore = create((set, get) => ({
       }));
     });
 
+    // handle chat cleared event
+    socket.on("chat_cleared", ({ conversationId }) => {
+      set((state) => {
+        const activeConvId = state.currentConversation?._id?.toString() || state.currentConversation?.toString();
+        const incomingConvId = conversationId?.toString();
+        
+        const isCurrentOpen = activeConvId === incomingConvId;
+        const newMessages = isCurrentOpen ? [] : state.messages;
+
+        const cList = Array.isArray(state.conversations) ? state.conversations : state.conversations?.data || [];
+        const updatedConversations = cList.map(conv => {
+          if (conv._id?.toString() === incomingConvId) {
+            return { 
+              ...conv, 
+              lastMessage: null, 
+              unreadCount: { ...conv.unreadCount, [useUserStore.getState().user?._id]: 0 } 
+            };
+          }
+          return conv;
+        });
+
+        return {
+          messages: newMessages,
+          conversations: Array.isArray(state.conversations)
+            ? updatedConversations
+            : { ...state.conversations, data: updatedConversations }
+        };
+      });
+    });
+
     // handle any message sending error
     socket.on("message_error", (error) => {
       console.error("message error", error);
@@ -136,12 +167,13 @@ export const useChatStore = create((set, get) => ({
 
     // emit status check for all users in conversation list
     const { conversations } = get();
+    const currentUser = useUserStore.getState().user;
     const convList = Array.isArray(conversations) ? conversations : (conversations?.data || []);
     
     if (convList.length > 0) {
       convList.forEach((conv) => {
         const otherUser = conv.participants?.find(
-          (p) => p._id !== get().currentUser?._id,
+          (p) => p._id !== currentUser?._id,
         );
 
         if (otherUser && otherUser._id) {
@@ -480,10 +512,40 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // clear chat
+  clearChat: async (conversationId) => {
+    try {
+      const { data } = await axiosInstance.delete(`/chats/clear/${conversationId}`);
+      
+      set((state) => {
+        const currentUser = useUserStore.getState().user;
+        const cList = Array.isArray(state.conversations) ? state.conversations : state.conversations?.data || [];
+        const updatedConversations = cList.map(conv => {
+          if (conv._id === conversationId) {
+            return { ...conv, lastMessage: null, unreadCount: { ...conv.unreadCount, [currentUser?._id]: 0 } };
+          }
+          return conv;
+        });
+
+        return {
+          messages: state.currentConversation === conversationId ? [] : state.messages,
+          conversations: Array.isArray(state.conversations)
+            ? updatedConversations
+            : { ...state.conversations, data: updatedConversations }
+        };
+      });
+      return true;
+    } catch (error) {
+      console.error("Error in clearing chat", error);
+      set({ error: error.response?.data?.message || error.message });
+      return false;
+    }
+  },
+
   // add or update reactions
   addReactions: async (messageId, emoji) => {
     const socket = getSocket();
-    const { currentUser } = get();
+    const currentUser = useUserStore.getState().user;
     if (socket && currentUser) {
       socket.emit("add_reaction", {
         messageId,

@@ -5,7 +5,8 @@ import { API_BASE_URL } from "./UrlService";
 let socket = null;
 
 export const initializeSocket = () => {
-  if (socket && socket.connected) return socket;
+  // Agar socket connected hai ya abhi connect ho raha hai → reuse karo
+  if (socket && (socket.connected || socket.active)) return socket;
 
   // Purana disconnected socket cleanup karo
   if (socket) {
@@ -56,11 +57,11 @@ export const initializeSocket = () => {
 
 
 export const getSocket = () => {
-  if (!socket || !socket.connected) {
-    return initializeSocket()
-  }
+  // Agar socket hai (connected ya connecting) → return karo, mat maaro
+  if (socket) return socket;
 
-  return socket
+  // Agar socket hi nahi hai → naya banao
+  return initializeSocket();
 }
 
 export const disconnectSocket = () => {

@@ -77,6 +77,20 @@ const SettingsScreen = () => {
     { icon: 'question-circle', label: 'Help', onPress: () => navigation.navigate('Help') },
   ];
 
+  const filteredMenuItems = menuItems.filter(item =>
+    item.label.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const showTheme =
+    'theme'.includes(searchText.toLowerCase()) ||
+    theme.includes(searchText.toLowerCase()) ||
+    searchText === '';
+
+  const showLogout =
+    'logout'.includes(searchText.toLowerCase()) ||
+    'log out'.includes(searchText.toLowerCase()) ||
+    searchText === '';
+
   return (
     <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
       <ScrollView
@@ -131,7 +145,7 @@ const SettingsScreen = () => {
 
           {/* Menu Items */}
           <View style={styles.menuContainer}>
-            {menuItems.map((item, index) => (
+            {filteredMenuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
                 style={[styles.menuItem, isDark ? styles.darkHover : styles.lightHover]}
@@ -148,36 +162,49 @@ const SettingsScreen = () => {
             ))}
 
             {/* Theme Button */}
-            <TouchableOpacity
-              style={[styles.menuItem, isDark ? styles.darkHover : styles.lightHover]}
-              onPress={toggleThemeDialog}
-              activeOpacity={0.7}
-            >
-              <Icon
-                name={isDark ? 'moon-o' : 'sun-o'}
-                size={20}
-                color={isDark ? '#60A5FA' : '#FCD34D'}
-              />
-              <View style={[styles.menuItemContent, isDark ? styles.darkBorder : styles.lightBorder]}>
-                <Text style={[styles.menuItemText, isDark ? styles.lightText : styles.darkText]}>
-                  Theme
-                </Text>
-                <Text style={styles.themeValue}>
-                  {theme.charAt(0).toUpperCase() + theme.slice(1)}
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {showTheme && (
+              <TouchableOpacity
+                style={[styles.menuItem, isDark ? styles.darkHover : styles.lightHover]}
+                onPress={toggleThemeDialog}
+                activeOpacity={0.7}
+              >
+                <Icon
+                  name={isDark ? 'moon-o' : 'sun-o'}
+                  size={20}
+                  color={isDark ? '#60A5FA' : '#FCD34D'}
+                />
+                <View style={[styles.menuItemContent, isDark ? styles.darkBorder : styles.lightBorder]}>
+                  <Text style={[styles.menuItemText, isDark ? styles.lightText : styles.darkText]}>
+                    Theme
+                  </Text>
+                  <Text style={styles.themeValue}>
+                    {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Logout Button */}
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogoutPress}
-            activeOpacity={0.7}
-          >
-            <Icon name="sign-out" size={20} color="#F87171" />
-            <Text style={styles.logoutText}>Log out</Text>
-          </TouchableOpacity>
+          {showLogout && (
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogoutPress}
+              activeOpacity={0.7}
+            >
+              <Icon name="sign-out" size={20} color="#F87171" />
+              <Text style={styles.logoutText}>Log out</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Empty State */}
+          {filteredMenuItems.length === 0 && !showTheme && !showLogout && (
+            <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: '#9CA3AF' }}>
+                No settings found for "{searchText}"
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
