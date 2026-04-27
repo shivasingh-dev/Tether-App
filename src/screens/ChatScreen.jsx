@@ -11,6 +11,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Modal,
   Dimensions,
   Animated,
   PermissionsAndroid,
@@ -27,6 +28,7 @@ import { getSocket } from '../Services/ChatServices';
 import { colors } from '../constants/colors';
 import MessageBubble from '../components/MessageBubble';
 import EmojiPicker from 'rn-emoji-keyboard';
+import useCallStore from '../Store/useCallStore';
 
 // 🎤 Audio recording - try to import, fallback if not available
 let useAudioRecorderHook = null;
@@ -128,6 +130,10 @@ const ChatScreen = ({ navigation }) => {
     addReactions,
     deleteMessage,
     clearChat,
+    blockStatus,
+    checkBlockStatus,
+    blockUser,
+    unblockUser,
   } = useChatStore();
 
   const receiverId = selectedContact?.user?._id || selectedContact?._id;
@@ -138,13 +144,45 @@ const ChatScreen = ({ navigation }) => {
     getUserLastSeen(receiverId) || selectedContact?.user?.lastSeen;
   const isTyping = isUserTyping(receiverId);
 
+  const { initiateCall } = useCallStore();
+
+  const handleVideoCall = () => {
+    if (online) {
+      initiateCall(
+        receiverId,
+        selectedContact?.user?.fullName || selectedContact?.fullName,
+        selectedContact?.user?.profilePicture || selectedContact?.profilePicture,
+        "video"
+      );
+    } else {
+      Alert.alert("User Offline", "Cannot initiate video call while user is offline.");
+    }
+  };
+
+  const handleVoiceCall = () => {
+    if (online) {
+      initiateCall(
+        receiverId,
+        selectedContact?.user?.fullName || selectedContact?.fullName,
+        selectedContact?.user?.profilePicture || selectedContact?.profilePicture,
+        "audio"
+      );
+    } else {
+      Alert.alert("User Offline", "Cannot initiate voice call while user is offline.");
+    }
+  };
+
   // ── Init ──
   useEffect(() => {
-    const convId =
-      selectedContact?.conversationId || selectedContact?.conversation?._id;
+    const convId = selectedContact?.conversationId || selectedContact?.conversation?._id;
     if (convId) {
       setCurrentConversation(convId);
       fetchMessages(convId);
+
+      // Check block status
+      if (receiverId) {
+        checkBlockStatus(receiverId);
+      }
     }
     return () => {
       resetChatState();
@@ -486,10 +524,26 @@ const ChatScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.hBtn} activeOpacity={0.7}>
+          <TouchableOpacity 
+            style={styles.hBtn} 
+            activeOpacity={0.7}
+            onPress={handleVideoCall}
+          >
             <Ionicons
               name="videocam-outline"
               size={22}
+              color={online ? colors.iconPrimary : colors.textMuted}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.hBtn} 
+            activeOpacity={0.7}
+            onPress={handleVoiceCall}
+          >
+            <Ionicons
+              name="call-outline"
+              size={20}
               color={online ? colors.iconPrimary : colors.textMuted}
             />
           </TouchableOpacity>
@@ -537,14 +591,24 @@ const ChatScreen = ({ navigation }) => {
                   <View style={styles.actionDivider} />
                   <TouchableOpacity
                     onPress={() => {
-                      setConfirmModal({ visible: true, type: 'block' });
+                      if (blockStatus.isBlockedByMe) {
+                        unblockUser(receiverId);
+                      } else {
+                        setConfirmModal({ visible: true, type: 'block' });
+                      }
                       setShowActionMenu(false);
                     }}
                     style={styles.actionItem}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="ban-outline" size={18} color="#ef4444" />
-                    <Text style={[styles.actionLbl, { color: '#ef4444' }]}>Block User</Text>
+                    <Ionicons 
+                      name={blockStatus.isBlockedByMe ? "checkmark-circle-outline" : "ban-outline"} 
+                      size={18} 
+                      color={blockStatus.isBlockedByMe ? "#00A884" : "#ef4444"} 
+                    />
+                    <Text style={[styles.actionLbl, { color: blockStatus.isBlockedByMe ? "#00A884" : '#ef4444' }]}>
+                      {blockStatus.isBlockedByMe ? 'Unblock User' : 'Block User'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -552,7 +616,28 @@ const ChatScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* MESSAGES */}
+        {/* MESSAGES AREA */}
+        {/* BLOCKED BANNER AT TOP */}
+        {!blockStatus.canMessage && (
+          <View style={[styles.blockBanner, { marginTop: 10 }]}>
+            <Text style={styles.blockText}>
+              {blockStatus.isBlockedByMe ? (
+                <Text>
+                  You blocked this contact.{" "}
+                  <Text 
+                    onPress={() => unblockUser(receiverId)}
+                    style={styles.unblockLink}
+                  >
+                    Tap to unblock
+                  </Text>
+                </Text>
+              ) : (
+                <Text>You can no longer message this contact.</Text>
+              )}
+            </Text>
+          </View>
+        )}
+
         {loading ? (
           <View style={styles.loadBox}>
             <ActivityIndicator size="large" color={colors.iconPrimary} />
@@ -660,8 +745,9 @@ const ChatScreen = ({ navigation }) => {
           expandable={true}
         />
 
+
         {/* INPUT BAR */}
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, !blockStatus.canMessage && { opacity: 0.5, pointerEvents: 'none' }]}>
           {/* Attach */}
           <View>
             <TouchableOpacity
@@ -716,11 +802,12 @@ const ChatScreen = ({ navigation }) => {
               setShowEmojiPanel(false);
               setShowAttachMenu(false);
             }}
-            placeholder="Type a message"
+            placeholder={blockStatus.isBlockedByMe ? "Unblock to send" : (blockStatus.isBlockedByThem ? "You are blocked" : "Type a message")}
             placeholderTextColor={colors.textPlaceholder}
             style={styles.textInput}
             multiline
             maxLength={2000}
+            editable={blockStatus.canMessage}
           />
 
           {showSend ? (
@@ -1147,10 +1234,27 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
   },
-  modalConfirmText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
+  modalConfirmText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  // Block styles
+  blockBanner: {
+    backgroundColor: 'rgba(37,99,235,0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.1)',
+    alignItems: 'center',
+  },
+  blockText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  unblockLink: {
+    color: colors.iconPrimary,
+    fontWeight: '700',
   },
 });
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { checkAuth } from '../Services/UserService';
-import { disconnectSocket, initializeSocket } from "../Services/ChatServices";
+import { disconnectSocket, getSocket, initializeSocket } from "../Services/ChatServices";
 
 // Screens import
 import IntroScreen from '../screens/IntroScreen';
@@ -20,6 +20,7 @@ import MessageBubble from '../components/MessageBubble'
 // Store import
 import useUserStore from '../Store/useUserStore';
 import {useChatStore} from '../Store/useChatStore'
+import VideoCallManager from '../components/VideoCall/VideoCallManager';
 
 const Stack = createNativeStackNavigator();
 
@@ -89,30 +90,29 @@ export default function StackNavigator() {
 
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, 
-      animation: 'fade', 
-    animationDuration: 100, 
-      }}>
-
-      {isAuthenticated ? (
-        // Authenticated — protected screens
-        <Stack.Group>
-          <Stack.Screen name="Home_Screen" component={HomeScreen} />
-          <Stack.Screen name="Status_Screen" component={StatusScreen} />
-          <Stack.Screen name="Settings_Screen" component={SettingsScreen} />
-          <Stack.Screen name="Call_Screen" component={CallHistoryScreen} />
-          <Stack.Screen name='UserDetails' component={UserDetailsScreen} />
-          <Stack.Screen name='Chat_Screen' component={ChatScreen} />
-        </Stack.Group>
-      ) : (
-        // Not authenticated — public screens
-        <Stack.Group>
-          <Stack.Screen name="Intro_Screen" component={IntroScreen} />
-          <Stack.Screen name="Welcome_Screen" component={WelcomeScreen} />
-          <Stack.Screen name="Register_Screen" component={RegisterScreen} />
-          <Stack.Screen name="SignUp_Screen" component={SignUpScreen} />
-        </Stack.Group>
-      )}
-    </Stack.Navigator>
+    <>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          // Authenticated — protected screens
+          <Stack.Group>
+            <Stack.Screen name="Home_Screen" component={HomeScreen} />
+            <Stack.Screen name="Status_Screen" component={StatusScreen} />
+            <Stack.Screen name="Settings_Screen" component={SettingsScreen} />
+            <Stack.Screen name="Call_Screen" component={CallHistoryScreen} />
+            <Stack.Screen name='UserDetails' component={UserDetailsScreen} />
+            <Stack.Screen name='Chat_Screen' component={ChatScreen} />
+          </Stack.Group>
+        ) : (
+          // Not authenticated — public screens
+          <Stack.Group>
+            <Stack.Screen name="Intro_Screen" component={IntroScreen} />
+            <Stack.Screen name="Welcome_Screen" component={WelcomeScreen} />
+            <Stack.Screen name="Register_Screen" component={RegisterScreen} />
+            <Stack.Screen name="SignUp_Screen" component={SignUpScreen} />
+          </Stack.Group>
+        )}
+      </Stack.Navigator>
+      {isAuthenticated && <VideoCallManager socket={getSocket()} />}
+    </>
   );
 }

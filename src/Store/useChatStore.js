@@ -13,6 +13,8 @@ export const useChatStore = create((set, get) => ({
   error: null,
   onlineUsers: new Map(),
   typingUsers: new Map(),
+  blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
+  setBlockStatus: (status) => set({ blockStatus: status }),
 
   
   // socket event listener setup
@@ -100,6 +102,30 @@ export const useChatStore = create((set, get) => ({
     socket.on("message_deleted", ({ deletedMessageId }) => {
       set((state) => ({
         messages: state.messages.filter((msg) => msg._id !== deletedMessageId),
+      }));
+    });
+
+    socket.on("user_blocked", ({ blockedUserId }) => {
+      set((state) => ({
+        blockStatus: { ...state.blockStatus, isBlockedByMe: true, canMessage: false },
+      }));
+    });
+
+    socket.on("blocked_by_user", ({ blockedByUserId }) => {
+      set((state) => ({
+        blockStatus: { ...state.blockStatus, isBlockedByThem: true, canMessage: false },
+      }));
+    });
+
+    socket.on("user_unblocked", ({ unblockedUserId }) => {
+      set((state) => ({
+        blockStatus: { ...state.blockStatus, isBlockedByMe: false, canMessage: !state.blockStatus.isBlockedByThem },
+      }));
+    });
+
+    socket.on("unblocked_by_user", ({ unblockedByUserId }) => {
+      set((state) => ({
+        blockStatus: { ...state.blockStatus, isBlockedByThem: false, canMessage: !state.blockStatus.isBlockedByMe },
       }));
     });
 
@@ -605,6 +631,7 @@ export const useChatStore = create((set, get) => ({
     set({
       messages: [],
       currentConversation: null,
+      blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
     }),
 
   cleanUp: () => {
@@ -615,6 +642,48 @@ export const useChatStore = create((set, get) => ({
       messages: [],
       onlineUsers: new Map(),
       typingUsers: new Map(),
+      blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
     });
+  },
+
+  checkBlockStatus: async (otherUserId) => {
+    try {
+      const res = await axiosInstance.get(`/block/block-status/${otherUserId}`);
+      if (res.data.success) {
+        set({ blockStatus: res.data.data });
+      }
+    } catch (error) {
+      console.error("Error checking block status", error);
+    }
+  },
+
+  blockUser: async (userIdToBlock) => {
+    try {
+      const res = await axiosInstance.post("/block/block", { userIdToBlock });
+      if (res.data.success) {
+        set((state) => ({
+          blockStatus: { ...state.blockStatus, isBlockedByMe: true, canMessage: false },
+        }));
+      }
+      return res.data;
+    } catch (error) {
+      console.error("Error blocking user", error);
+      throw error;
+    }
+  },
+
+  unblockUser: async (userIdToUnblock) => {
+    try {
+      const res = await axiosInstance.post("/block/unblock", { userIdToUnblock });
+      if (res.data.success) {
+        set((state) => ({
+          blockStatus: { ...state.blockStatus, isBlockedByMe: false, canMessage: !state.blockStatus.isBlockedByThem },
+        }));
+      }
+      return res.data;
+    } catch (error) {
+      console.error("Error unblocking user", error);
+      throw error;
+    }
   },
 }));
