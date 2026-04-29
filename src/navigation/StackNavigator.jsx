@@ -92,6 +92,7 @@ export default function StackNavigator() {
   return (
     <>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Intro_Screen" component={IntroScreen} />
         {isAuthenticated ? (
           // Authenticated — protected screens
           <Stack.Group>
@@ -105,7 +106,6 @@ export default function StackNavigator() {
         ) : (
           // Not authenticated — public screens
           <Stack.Group>
-            <Stack.Screen name="Intro_Screen" component={IntroScreen} />
             <Stack.Screen name="Welcome_Screen" component={WelcomeScreen} />
             <Stack.Screen name="Register_Screen" component={RegisterScreen} />
             <Stack.Screen name="SignUp_Screen" component={SignUpScreen} />

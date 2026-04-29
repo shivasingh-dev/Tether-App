@@ -9,6 +9,7 @@ const apiUrl = `${API_BASE_URL}/api/`
 const axiosInstance = axios.create({
   baseURL: apiUrl,
   withCredentials: true,
+  timeout: 30000, // 30 seconds
 })
 
 axiosInstance.interceptors.request.use((config) => {

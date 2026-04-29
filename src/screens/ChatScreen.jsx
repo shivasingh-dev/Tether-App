@@ -15,8 +15,10 @@ import {
   Dimensions,
   Animated,
   PermissionsAndroid,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { isToday, isYesterday, format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -29,6 +31,7 @@ import { colors } from '../constants/colors';
 import MessageBubble from '../components/MessageBubble';
 import EmojiPicker from 'rn-emoji-keyboard';
 import useCallStore from '../Store/useCallStore';
+import { useContactStore } from '../Store/useContactStore';
 
 // 🎤 Audio recording - try to import, fallback if not available
 let useAudioRecorderHook = null;
@@ -89,6 +92,8 @@ const ChatScreen = ({ navigation }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ visible: false, type: null });
   const [isClearing, setIsClearing] = useState(false);
+  const [selectedMsg, setSelectedMsg] = useState(null);
+  const [showReactionMenu, setShowReactionMenu] = useState(false);
 
   // 🎤 AUDIO RECORDING STATES
   const [isRecording, setIsRecording] = useState(false);
@@ -134,7 +139,10 @@ const ChatScreen = ({ navigation }) => {
     checkBlockStatus,
     blockUser,
     unblockUser,
+    setSelectedContactId,
   } = useChatStore();
+
+  const { setSelectedContact } = useLayoutStore();
 
   const receiverId = selectedContact?.user?._id || selectedContact?._id;
   const online = useChatStore.getState().onlineUsers.has(receiverId)
@@ -145,6 +153,10 @@ const ChatScreen = ({ navigation }) => {
   const isTyping = isUserTyping(receiverId);
 
   const { initiateCall } = useCallStore();
+  const { getLocalName } = useContactStore();
+
+  const localName = getLocalName(selectedContact?.user?.phoneNumber);
+  const displayName = localName || selectedContact?.user?.fullName || selectedContact?.fullName;
 
   const handleVideoCall = () => {
     if (online) {
@@ -172,6 +184,53 @@ const ChatScreen = ({ navigation }) => {
     }
   };
 
+  // ── Selection & Reactions ──
+  const handleLongPress = (msg) => {
+    setSelectedMsg(msg);
+    setShowReactionMenu(true);
+  };
+
+  const handleMessagePress = (msg) => {
+    if (selectedMsg) {
+      setSelectedMsg(null);
+    }
+  };
+
+  const handleQuickReact = (emoji) => {
+    if (selectedMsg) {
+      addReactions(selectedMsg._id, emoji);
+      setSelectedMsg(null);
+      setShowReactionMenu(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (selectedMsg && selectedMsg.contentType === 'text') {
+      Clipboard.setString(selectedMsg.content);
+      setSelectedMsg(null);
+    }
+  };
+
+  const handleDeleteMsg = () => {
+    if (selectedMsg) {
+      Alert.alert(
+        'Delete Message',
+        'Kya aap is message ko delete karna chahte hain?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              deleteMessage(selectedMsg._id);
+              setSelectedMsg(null);
+            },
+          },
+        ],
+      );
+    }
+  };
+
   // ── Init ──
   useEffect(() => {
     const convId = selectedContact?.conversationId || selectedContact?.conversation?._id;
@@ -181,6 +240,7 @@ const ChatScreen = ({ navigation }) => {
 
       // Check block status
       if (receiverId) {
+        setSelectedContactId(receiverId);
         checkBlockStatus(receiverId);
       }
     }
@@ -219,15 +279,9 @@ const ChatScreen = ({ navigation }) => {
   }, [messages]);
 
   const startRecording = async () => {
+    Alert.alert('Coming Soon', 'Audio message feature will be available in upcoming updates.');
+    return;
     try {
-      // Check if audio recorder is available
-      if (!startRecorder || !stopRecorder) {
-        Alert.alert(
-          'Audio Not Available',
-          'Voice recording feature requires a native rebuild. Please rebuild the app with: npx react-native run-android'
-        );
-        return;
-      }
 
       if (Platform.OS === 'android') {
         const granted = await PermissionsAndroid.request(
@@ -346,7 +400,8 @@ const ChatScreen = ({ navigation }) => {
           type: 'audio/mp4',
           name: `voice_${Date.now()}.${Platform.OS === 'ios' ? 'm4a' : 'mp4'}`,
         },
-        messageStatus: 'sent'
+        messageStatus: 'sent',
+        conversationId: selectedContact?.conversationId || selectedContact?.conversation?._id
       });
       console.log('🎤 Audio message sent successfully');
     } catch (err) {
@@ -357,6 +412,9 @@ const ChatScreen = ({ navigation }) => {
 
   const handlePickImage = () => {
     setShowAttachMenu(false);
+    Alert.alert("Coming Soon", "Sending image and video will be available soon!");
+    return;
+    /*
     launchImageLibrary({ mediaType: 'mixed', quality: 0.85 }, async res => {
       if (res.didCancel || res.errorCode) return;
       const asset = res.assets?.[0];
@@ -392,6 +450,7 @@ const ChatScreen = ({ navigation }) => {
       });
       setFilePreviewUri(asset.uri);
     });
+    */
   };
 
   // ── Send text/image ──
@@ -399,13 +458,26 @@ const ChatScreen = ({ navigation }) => {
     if (!selectedContact || !user?._id) return;
     if (!message.trim() && !selectedFile) return;
     try {
-      await sendMessage({
+      const response = await sendMessage({
         senderId: user._id,
         receiverId,
         content: message.trim(),
         media: selectedFile,
-        messageStatus: 'sent'
+        messageStatus: 'sent',
+        conversationId: selectedContact?.conversationId || selectedContact?.conversation?._id
       });
+
+      // Agar ye new conversation thi (Id nahi thi), toh store update hone ke baad response se id nikal kar update karo
+      if (response && !selectedContact.conversationId) {
+        const newConvId = response.conversation?._id || response.conversation;
+        if (newConvId) {
+          setSelectedContact({
+            ...selectedContact,
+            conversationId: newConvId
+          });
+        }
+      }
+
       setMessage('');
       setSelectedFile(null);
       setFilePreviewUri(null);
@@ -434,7 +506,21 @@ const ChatScreen = ({ navigation }) => {
       const cc =
         selectedContact?.conversationId?.toString() ||
         selectedContact?.conversation?._id?.toString();
-      return mc === cc;
+      
+      // Agar conversation ID match ho jati hai toh simple hai
+      if (cc && mc === cc) return true;
+
+      // Agar conversation ID nahi hai (New Chat case), toh sender aur receiver se match karo
+      if (!cc) {
+        const sId = user?._id?.toString();
+        const rId = receiverId?.toString();
+        const msgSender = m.sender?._id?.toString() || m.sender?.toString();
+        const msgReceiver = m.receiver?._id?.toString() || m.receiver?.toString();
+        
+        return (msgSender === sId && msgReceiver === rId) || (msgSender === rId && msgReceiver === sId);
+      }
+
+      return false;
     });
     if (!filtered.length) return [];
     return [{ type: 'date', id: `d-${ds}`, date: new Date(ds) }, ...filtered];
@@ -450,9 +536,7 @@ const ChatScreen = ({ navigation }) => {
           : format(item.date, 'EEEE, MMMM d');
         return (
           <View style={styles.dateSep}>
-            <View style={styles.dateLine} />
             <Text style={styles.dateText}>{lbl}</Text>
-            <View style={styles.dateLine} />
           </View>
         );
       }
@@ -462,10 +546,13 @@ const ChatScreen = ({ navigation }) => {
           currentUser={user}
           onReact={(id, e) => addReactions(id, e)}
           deleteMessage={deleteMessage}
+          isSelected={selectedMsg?._id === item._id}
+          onLongPress={handleLongPress}
+          onPress={handleMessagePress}
         />
       );
     },
-    [user, addReactions, deleteMessage],
+    [user, addReactions, deleteMessage, selectedMsg],
   );
 
   // Agar message ya file selected hai to Send button, warna Mic button
@@ -483,8 +570,8 @@ const ChatScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* HEADER */}
         <View style={styles.header}>
@@ -504,49 +591,71 @@ const ChatScreen = ({ navigation }) => {
           ) : (
             <View style={styles.hAvatarFallback}>
               <Text style={styles.hAvatarText}>
-                {(selectedContact?.user?.fullName || '?')[0].toUpperCase()}
+                {(displayName || '?')[0].toUpperCase()}
               </Text>
             </View>
           )}
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.hName} numberOfLines={1}>
-              {selectedContact?.user?.fullName || selectedContact?.fullName}
-            </Text>
-            <Text
-              style={[
-                styles.hStatus,
-                { color: isTyping || online ? '#4ade80' : colors.textMuted },
-              ]}
-              numberOfLines={1}
-            >
-              {statusText}
-            </Text>
+            {selectedMsg ? (
+              <Text style={styles.hName}>1</Text>
+            ) : (
+              <>
+                <Text style={styles.hName} numberOfLines={1}>
+                  {displayName}
+                </Text>
+                <Text
+                  style={[
+                    styles.hStatus,
+                    { color: isTyping || online ? '#4ade80' : colors.textMuted },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {statusText}
+                </Text>
+              </>
+            )}
           </View>
 
-          <TouchableOpacity 
-            style={styles.hBtn} 
-            activeOpacity={0.7}
-            onPress={handleVideoCall}
-          >
-            <Ionicons
-              name="videocam-outline"
-              size={22}
-              color={online ? colors.iconPrimary : colors.textMuted}
-            />
-          </TouchableOpacity>
+          {selectedMsg ? (
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity style={styles.hBtn} onPress={handleCopy}>
+                <Ionicons name="copy-outline" size={20} color={colors.iconPrimary} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.hBtn} onPress={handleDeleteMsg}>
+                <Ionicons name="trash-outline" size={20} color="#f87171" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.hBtn} onPress={() => setSelectedMsg(null)}>
+                <Ionicons name="close" size={22} color={colors.iconPrimary} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={styles.hBtn} 
+                activeOpacity={0.7}
+                onPress={handleVideoCall}
+              >
+                <Ionicons
+                  name="videocam-outline"
+                  size={22}
+                  color={online ? colors.iconPrimary : colors.textMuted}
+                />
+              </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.hBtn} 
-            activeOpacity={0.7}
-            onPress={handleVoiceCall}
-          >
-            <Ionicons
-              name="call-outline"
-              size={20}
-              color={online ? colors.iconPrimary : colors.textMuted}
-            />
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.hBtn} 
+                activeOpacity={0.7}
+                onPress={handleVoiceCall}
+              >
+                <Ionicons
+                  name="call-outline"
+                  size={20}
+                  color={online ? colors.iconPrimary : colors.textMuted}
+                />
+              </TouchableOpacity>
+            </>
+          )}
           
           <View>
             <TouchableOpacity 
@@ -588,7 +697,7 @@ const ChatScreen = ({ navigation }) => {
                     <Ionicons name="trash-outline" size={18} color="#93c5fd" />
                     <Text style={styles.actionLbl}>Clear Chat</Text>
                   </TouchableOpacity>
-                  <View style={styles.actionDivider} />
+                  <View style={styles.actionDivider}></View>
                   <TouchableOpacity
                     onPress={() => {
                       if (blockStatus.isBlockedByMe) {
@@ -617,50 +726,56 @@ const ChatScreen = ({ navigation }) => {
         </View>
 
         {/* MESSAGES AREA */}
-        {/* BLOCKED BANNER AT TOP */}
-        {!blockStatus.canMessage && (
-          <View style={[styles.blockBanner, { marginTop: 10 }]}>
-            <Text style={styles.blockText}>
-              {blockStatus.isBlockedByMe ? (
-                <Text>
-                  You blocked this contact.{" "}
-                  <Text 
-                    onPress={() => unblockUser(receiverId)}
-                    style={styles.unblockLink}
-                  >
-                    Tap to unblock
-                  </Text>
-                </Text>
-              ) : (
-                <Text>You can no longer message this contact.</Text>
-              )}
-            </Text>
-          </View>
-        )}
-
         {loading ? (
           <View style={styles.loadBox}>
             <ActivityIndicator size="large" color={colors.iconPrimary} />
           </View>
         ) : (
-          <FlatList
-            ref={flatListRef}
-            data={flatData}
-            keyExtractor={item => item._id || item.id || item.tempId}
-            renderItem={renderItem}
-            contentContainerStyle={styles.msgList}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: false })
-            }
-          />
+          <>
+            <FlatList
+              ref={flatListRef}
+              data={flatData}
+              keyExtractor={item => item._id || item.id || item.tempId}
+              renderItem={renderItem}
+              contentContainerStyle={styles.msgList}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() =>
+                flatListRef.current?.scrollToEnd({ animated: false })
+              }
+            />
+            
+            {/* QUICK REACTION OVERLAY */}
+            {showReactionMenu && (
+              <View style={StyleSheet.absoluteFill}>
+                <Pressable 
+                  style={styles.reactionOverlay} 
+                  onPress={() => {
+                    setShowReactionMenu(false);
+                    setSelectedMsg(null);
+                  }}
+                >
+                  <View style={styles.reactionMenuBox}>
+                    {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        onPress={() => handleQuickReact(emoji)}
+                        style={styles.reactionBtn}
+                      >
+                        <Text style={styles.reactionEmojiText}>{emoji}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Pressable>
+              </View>
+            )}
+          </>
         )}
 
         {/* 🎤 RECORDING BANNER */}
         {isRecording && (
           <View style={styles.recBanner}>
-            <View style={styles.recDot} />
+            <View style={styles.recDot}></View>
             <Text style={styles.recText}>Recording...</Text>
             <Text style={styles.recDuration}>
               {formatDuration(recordingDuration)}
@@ -744,6 +859,27 @@ const ChatScreen = ({ navigation }) => {
           categoryPosition="top"
           expandable={true}
         />
+
+        {/* BLOCKED BANNER ABOVE INPUT */}
+        {!blockStatus.canMessage && (
+          <View style={[styles.blockBanner, { marginBottom: 5 }]}>
+            <Text style={styles.blockText}>
+              {blockStatus.isBlockedByMe ? (
+                <Text>
+                  You blocked this contact.{" "}
+                  <Text 
+                    onPress={() => unblockUser(receiverId)}
+                    style={styles.unblockLink}
+                  >
+                    Tap to unblock
+                  </Text>
+                </Text>
+              ) : (
+                <Text>You can no longer message this contact.</Text>
+              )}
+            </Text>
+          </View>
+        )}
 
 
         {/* INPUT BAR */}
@@ -889,9 +1025,15 @@ const ChatScreen = ({ navigation }) => {
                     } else {
                       Alert.alert('Error', 'Failed to clear chat');
                     }
+                  } else if (confirmModal.type === 'block') {
+                    try {
+                      await blockUser(receiverId);
+                      setConfirmModal({ visible: false, type: null });
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to block user');
+                    }
                   } else {
                     setConfirmModal({ visible: false, type: null });
-                    console.log(`${confirmModal.type} confirmed`);
                   }
                 }}
                 style={[
@@ -928,6 +1070,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(30,58,138,0.25)',
     gap: 6,
+    zIndex: 2,
+    elevation: 2,
   },
   hBtn: { padding: 8, borderRadius: 99 },
   hAvatar: {
@@ -970,16 +1114,17 @@ const styles = StyleSheet.create({
   dateSep: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: 14,
     gap: 8,
   },
   dateLine: { flex: 1, height: 1, backgroundColor: 'rgba(30,58,138,0.25)' },
   dateText: {
-    fontSize: 11,
+    fontSize: 13,
     color: 'rgba(147,197,253,0.55)',
     fontWeight: '500',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     backgroundColor: 'rgba(6,35,79,0.5)',
     borderRadius: 99,
     borderWidth: 1,
@@ -1255,6 +1400,34 @@ const styles = StyleSheet.create({
   unblockLink: {
     color: colors.iconPrimary,
     fontWeight: '700',
+  },
+  // Reaction Modal Styles
+  reactionOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reactionMenuBox: {
+    flexDirection: 'row',
+    backgroundColor: '#0a1f44',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(30,58,138,0.5)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  reactionBtn: {
+    padding: 2,
+  },
+  reactionEmojiText: {
+    fontSize: 26,
   },
 });
 

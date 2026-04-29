@@ -16,7 +16,9 @@ export default function StatusScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Updates</Text>
-        {/* Status/Updates content yahan */}
+        <View style={styles.updateContainer}>
+          <Text style={styles.updateText}>This Status feature will be avaiable in upcoming updates</Text>
+        </View>
       </View>
       
       <BottomBarNavigator />
@@ -38,5 +40,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textPrimary,
     marginVertical: 16,
+  },
+  updateContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  updateText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: colors.textPrimary,
   },
 });

@@ -326,6 +326,32 @@ const UserDetailsScreen = () => {
               </View>
             </View>
           </View>
+
+          {/* Email Field (Read-only) */}
+          <View style={[styles.fieldContainer, isDark ? styles.darkField : styles.lightField]}>
+            <Text style={styles.fieldLabel}>Email</Text>
+            <View style={styles.fieldInputContainer}>
+              <Text style={[styles.fieldValue, isDark ? styles.lightText : styles.darkText, { opacity: 0.7 }]}>
+                {user?.email || 'Not set'}
+              </Text>
+              <View style={styles.fieldActions}>
+                <Icon name="lock" size={16} color="#9CA3AF" />
+              </View>
+            </View>
+          </View>
+
+          {/* Phone Field (Read-only) */}
+          <View style={[styles.fieldContainer, isDark ? styles.darkField : styles.lightField]}>
+            <Text style={styles.fieldLabel}>Phone Number</Text>
+            <View style={styles.fieldInputContainer}>
+              <Text style={[styles.fieldValue, isDark ? styles.lightText : styles.darkText, { opacity: 0.7 }]}>
+                {user?.phoneNumber || 'Not set'}
+              </Text>
+              <View style={styles.fieldActions}>
+                <Icon name="lock" size={16} color="#9CA3AF" />
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
 

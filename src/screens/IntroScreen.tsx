@@ -17,6 +17,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated'
+import useUserStore from '../Store/useUserStore'
 
 const { width, height } = Dimensions.get('window')
 
@@ -33,8 +34,14 @@ export default function IntroScreen({ navigation }: any) {
   const progressWidth   = useSharedValue(0)
   const progressGlow    = useSharedValue(0.4)
 
-  const navigateToWelcome = () => {
-    navigation?.navigate('Welcome_Screen')
+  const { isAuthenticated } = useUserStore();
+
+  const navigateNext = () => {
+    if (isAuthenticated) {
+      navigation?.replace('Home_Screen')
+    } else {
+      navigation?.replace('Welcome_Screen')
+    }
   }
 
   useEffect(() => {
@@ -58,7 +65,7 @@ export default function IntroScreen({ navigation }: any) {
         duration: 2000,
         easing: Easing.inOut(Easing.ease),
       }, (finished) => {
-        if (finished) runOnJS(navigateToWelcome)()
+        if (finished) runOnJS(navigateNext)()
       })
     )
 

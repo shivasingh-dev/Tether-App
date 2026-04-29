@@ -73,7 +73,7 @@ const SettingsScreen = () => {
 
   const menuItems = [
     { icon: 'user', label: 'Account', onPress: navigateToProfile },
-    { icon: 'comment', label: 'Chats', onPress: () => navigation.navigate('Home') },
+    { icon: 'comment', label: 'Chats', onPress: () => navigation.navigate('Home_Screen') },
     { icon: 'question-circle', label: 'Help', onPress: () => navigation.navigate('Help') },
   ];
 
@@ -150,7 +150,7 @@ const SettingsScreen = () => {
                 key={index}
                 style={[styles.menuItem, isDark ? styles.darkHover : styles.lightHover]}
                 onPress={item.onPress}
-                activeOpacity={0.7}
+                activeOpacity={0.4}
               >
                 <Icon name={item.icon} size={20} color="#60A5FA" />
                 <View style={[styles.menuItemContent, isDark ? styles.darkBorder : styles.lightBorder]}>

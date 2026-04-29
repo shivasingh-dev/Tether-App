@@ -4,6 +4,9 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
@@ -423,8 +426,17 @@ export default function SignUpScreen({ navigation }) {
     stepFourFormik.resetForm();
   };
   return (
-    <SafeAreaView style={styles.outermost}>
-      {signUp && (
+    <SafeAreaView style={styles.outermost} edges={['top']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {signUp && (
         <>
           {/* Progress Bar */}
           <View style={styles.progressRow}>
@@ -1058,6 +1070,8 @@ export default function SignUpScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

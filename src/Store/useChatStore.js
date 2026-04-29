@@ -3,6 +3,7 @@ import { disconnectSocket, getSocket } from "../Services/ChatServices";
 import { Socket } from "socket.io-client";
 import axiosInstance from "../Services/UrlService";
 import useUserStore from "./useUserStore";
+import { saveMediaToLocal } from "../Utils/MediaUtils";
 
 export const useChatStore = create((set, get) => ({
   conversations: [],
@@ -13,6 +14,8 @@ export const useChatStore = create((set, get) => ({
   error: null,
   onlineUsers: new Map(),
   typingUsers: new Map(),
+  selectedContactId: null,
+  setSelectedContactId: (id) => set({ selectedContactId: id }),
   blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
   setBlockStatus: (status) => set({ blockStatus: status }),
 
@@ -33,6 +36,10 @@ export const useChatStore = create((set, get) => ({
     socket.off("reaction_updated");
     socket.off("message_status_update");
     socket.off("chat_cleared");
+    socket.off("user_blocked");
+    socket.off("blocked_by_user");
+    socket.off("user_unblocked");
+    socket.off("unblocked_by_user");
 
     // listen for incoming message
     socket.on("receive_message", (message) => {
@@ -106,27 +113,39 @@ export const useChatStore = create((set, get) => ({
     });
 
     socket.on("user_blocked", ({ blockedUserId }) => {
-      set((state) => ({
-        blockStatus: { ...state.blockStatus, isBlockedByMe: true, canMessage: false },
-      }));
+      const { selectedContactId } = get();
+      if (selectedContactId === blockedUserId) {
+        set((state) => ({
+          blockStatus: { ...state.blockStatus, isBlockedByMe: true, canMessage: false },
+        }));
+      }
     });
 
     socket.on("blocked_by_user", ({ blockedByUserId }) => {
-      set((state) => ({
-        blockStatus: { ...state.blockStatus, isBlockedByThem: true, canMessage: false },
-      }));
+      const { selectedContactId } = get();
+      if (selectedContactId === blockedByUserId) {
+        set((state) => ({
+          blockStatus: { ...state.blockStatus, isBlockedByThem: true, canMessage: false },
+        }));
+      }
     });
 
     socket.on("user_unblocked", ({ unblockedUserId }) => {
-      set((state) => ({
-        blockStatus: { ...state.blockStatus, isBlockedByMe: false, canMessage: !state.blockStatus.isBlockedByThem },
-      }));
+      const { selectedContactId } = get();
+      if (selectedContactId === unblockedUserId) {
+        set((state) => ({
+          blockStatus: { ...state.blockStatus, isBlockedByMe: false, canMessage: !state.blockStatus.isBlockedByThem },
+        }));
+      }
     });
 
     socket.on("unblocked_by_user", ({ unblockedByUserId }) => {
-      set((state) => ({
-        blockStatus: { ...state.blockStatus, isBlockedByThem: false, canMessage: !state.blockStatus.isBlockedByMe },
-      }));
+      const { selectedContactId } = get();
+      if (selectedContactId === unblockedByUserId) {
+        set((state) => ({
+          blockStatus: { ...state.blockStatus, isBlockedByThem: false, canMessage: !state.blockStatus.isBlockedByMe },
+        }));
+      }
     });
 
     // handle chat cleared event
@@ -346,17 +365,27 @@ export const useChatStore = create((set, get) => ({
       if (messageStatus) formData.append("messageStatus", messageStatus);
       
       if (media) {
+        const cleanUri = Platform.OS === 'android' && media.uri.startsWith('file://') 
+          ? media.uri 
+          : media.uri.startsWith('content://') 
+            ? media.uri 
+            : `file://${media.uri}`;
+
         formData.append("media", {
-          uri: media.uri,
+          uri: cleanUri,
           type: media.type || 'image/jpeg',
           name: media.name || 'media.jpg',
         });
       }
 
       const { data } = await axiosInstance.post(
-        "/chats/send-message",
+        "chats/send-message",
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
       const messageData = data.data || data;
 
@@ -367,12 +396,24 @@ export const useChatStore = create((set, get) => ({
           : state.conversations?.data || [];
         const messageConvId = messageData.conversation?._id || messageData.conversation;
 
-        const updatedConversations = cList.map((conv) => {
-          if (conv._id === messageConvId || conv._id === conversationId) {
-            return { ...conv, lastMessage: messageData };
-          }
-          return conv;
-        });
+        const convIndex = cList.findIndex((conv) => conv._id === messageConvId);
+
+        let updatedConversations;
+        if (convIndex !== -1) {
+          // Update existing conversation and move to top
+          const existingConv = { ...cList[convIndex], lastMessage: messageData };
+          updatedConversations = [
+            existingConv,
+            ...cList.filter((_, i) => i !== convIndex),
+          ];
+        } else {
+          // If new conversation, add it to the top
+          // Note: backend returns populated conversation in messageData.conversation
+          const newConv = messageData.conversation && typeof messageData.conversation === 'object'
+            ? { ...messageData.conversation, lastMessage: messageData }
+            : { _id: messageConvId, lastMessage: messageData };
+          updatedConversations = [newConv, ...cList];
+        }
 
         return {
           messages: state.messages.map((msg) =>
@@ -383,6 +424,7 @@ export const useChatStore = create((set, get) => ({
             : { ...state.conversations, data: updatedConversations },
         };
       });
+      return messageData;
     } catch (error) {
       console.error("Error in sending message", error);
       set((state) => ({
@@ -422,56 +464,62 @@ export const useChatStore = create((set, get) => ({
       message.receiver === currentUser?._id
     ) {
       get().markMessagesAsRead(incomingConvId);
+      
+      // Auto-save media to local storage for receiver
+      if (message.imageOrVideoUrl && (message.contentType === "image" || message.contentType === "video")) {
+        saveMediaToLocal(message.imageOrVideoUrl, message.contentType);
+      }
     }
   }
 }
 
     // --- 2. SIDEBAR UPDATE ---
-    // ✅ FIX: array ya object dono handle karo
     const convList = Array.isArray(conversations)
       ? conversations
-      : conversations?.data;
+      : conversations?.data || [];
 
-    if (!convList?.length) {
-      console.log("⚠️ Sidebar Update Skipped: convList empty");
-      return;
+    const convIndex = convList.findIndex((conv) => conv._id?.toString() === incomingConvId);
+
+    let updatedConversations;
+    if (convIndex !== -1) {
+      // Update existing conversation and move to top
+      const conv = convList[convIndex];
+      const isChatOpen = activeConvId === incomingConvId;
+      const isReceiver =
+        message.receiver?._id === currentUser?._id ||
+        message.receiver === currentUser?._id;
+      const shouldIncrement = isReceiver && !isChatOpen;
+
+      let newUnreadCount = typeof conv.unreadCount === "object" && conv.unreadCount !== null
+        ? { ...conv.unreadCount } : {};
+
+      if (shouldIncrement && currentUser?._id) {
+        const currentCount = newUnreadCount[currentUser._id] || 0;
+        newUnreadCount[currentUser._id] = currentCount + 1;
+      }
+
+      const updatedConv = {
+        ...conv,
+        lastMessage: message,
+        unreadCount: newUnreadCount,
+      };
+
+      updatedConversations = [
+        updatedConv,
+        ...convList.filter((_, i) => i !== convIndex),
+      ];
+    } else {
+      // New conversation — move to top
+      const newConv = message.conversation && typeof message.conversation === 'object'
+        ? { ...message.conversation, lastMessage: message }
+        : { 
+            _id: incomingConvId, 
+            lastMessage: message, 
+            participants: [message.sender?._id || message.sender, message.receiver?._id || message.receiver] 
+          };
+      updatedConversations = [newConv, ...convList];
     }
 
-    const updatedConversations = convList.map((conv) => {
-      const convId = conv._id?.toString();
-
-      if (convId === incomingConvId) {
-        const isChatOpen = activeConvId === incomingConvId;
-        const isReceiver =
-          message.receiver?._id === currentUser?._id ||
-          message.receiver === currentUser?._id;
-        const shouldIncrement = isReceiver && !isChatOpen;
-
-        let newUnreadCount = typeof conv.unreadCount === "object" && conv.unreadCount !== null
-          ? { ...conv.unreadCount } : {};
-
-        if (shouldIncrement && currentUser?._id) {
-          const currentCount = newUnreadCount[currentUser._id] || 0;
-          newUnreadCount[currentUser._id] = currentCount + 1;
-        }
-
-        return {
-          ...conv,
-          lastMessage: message,
-          unreadCount: newUnreadCount,
-        };
-      }
-      return conv;
-    });
-    
-    console.log(
-      "=== SET CONVERSATIONS ===",
-      Array.isArray(conversations)
-        ? updatedConversations
-        : { ...conversations, data: updatedConversations },
-    );
-
-    // ✅ FIX: original structure preserve karo
     set({
       conversations: Array.isArray(conversations)
         ? updatedConversations
@@ -525,8 +573,12 @@ export const useChatStore = create((set, get) => ({
 
   // delete messages
   deleteMessage: async (messageId) => {
+    if (!messageId || messageId.toString().startsWith("temp")) {
+      console.warn("Cannot delete optimistic message");
+      return false;
+    }
     try {
-      await axiosInstance.delete(`/chats/messages/${messageId}`);
+      await axiosInstance.delete(`chats/messages/${messageId}`);
       set((state) => ({
         messages: state.messages?.filter((msg) => msg?._id !== messageId),
       }));
@@ -563,6 +615,31 @@ export const useChatStore = create((set, get) => ({
       return true;
     } catch (error) {
       console.error("Error in clearing chat", error);
+      set({ error: error.response?.data?.message || error.message });
+      return false;
+    }
+  },
+
+  // delete conversation entirely
+  deleteConversation: async (conversationId) => {
+    try {
+      const { data } = await axiosInstance.delete(`/chats/conversation/${conversationId}`);
+      
+      set((state) => {
+        const cList = Array.isArray(state.conversations) ? state.conversations : state.conversations?.data || [];
+        const updatedConversations = cList.filter(conv => conv._id !== conversationId);
+
+        return {
+          messages: state.currentConversation === conversationId ? [] : state.messages,
+          currentConversation: state.currentConversation === conversationId ? null : state.currentConversation,
+          conversations: Array.isArray(state.conversations)
+            ? updatedConversations
+            : { ...state.conversations, data: updatedConversations }
+        };
+      });
+      return true;
+    } catch (error) {
+      console.error("Error in deleting conversation", error);
       set({ error: error.response?.data?.message || error.message });
       return false;
     }
@@ -631,6 +708,7 @@ export const useChatStore = create((set, get) => ({
     set({
       messages: [],
       currentConversation: null,
+      selectedContactId: null,
       blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
     }),
 
