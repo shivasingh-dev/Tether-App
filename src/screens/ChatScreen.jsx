@@ -140,6 +140,10 @@ const ChatScreen = ({ navigation }) => {
     checkBlockStatus,
     blockUser,
     unblockUser,
+    reportStatus,
+    checkReportStatus,
+    reportUser,
+    unreportUser,
     setSelectedContactId,
   } = useChatStore();
 
@@ -249,10 +253,11 @@ const ChatScreen = ({ navigation }) => {
       setCurrentConversation(convId);
       fetchMessages(convId);
 
-      // Check block status
+      // Check block and report status
       if (receiverId) {
         setSelectedContactId(receiverId);
         checkBlockStatus(receiverId);
+        checkReportStatus(receiverId);
       }
     }
     return () => {
@@ -732,6 +737,33 @@ const ChatScreen = ({ navigation }) => {
                       {blockStatus.isBlockedByMe ? 'Unblock User' : 'Block User'}
                     </Text>
                   </TouchableOpacity>
+                  <View style={styles.actionDivider}></View>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (reportStatus.isReportedByMe) {
+                        try {
+                          await unreportUser(receiverId);
+                          Alert.alert("Success", "User unreported successfully");
+                        } catch (e) {
+                          Alert.alert("Error", "Failed to unreport user");
+                        }
+                      } else {
+                        setConfirmModal({ visible: true, type: 'report' });
+                      }
+                      setShowActionMenu(false);
+                    }}
+                    style={styles.actionItem}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons 
+                      name={reportStatus.isReportedByMe ? "shield-checkmark-outline" : "warning-outline"} 
+                      size={18} 
+                      color={reportStatus.isReportedByMe ? "#00A884" : "#eab308"} 
+                    />
+                    <Text style={[styles.actionLbl, { color: reportStatus.isReportedByMe ? "#00A884" : '#eab308' }]}>
+                      {reportStatus.isReportedByMe ? 'Unreport User' : 'Report User'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             </Modal>
@@ -1002,21 +1034,23 @@ const ChatScreen = ({ navigation }) => {
           onPress={() => setConfirmModal({ visible: false, type: null })}
         >
           <View style={styles.modalContent}>
-            <View style={[styles.modalIconBox, { backgroundColor: confirmModal.type === 'block' ? 'rgba(239,68,68,0.1)' : 'rgba(37,99,235,0.1)' }]}>
+            <View style={[styles.modalIconBox, { backgroundColor: confirmModal.type === 'clear' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)' }]}>
               <Ionicons 
-                name={confirmModal.type === 'block' ? 'alert-circle' : 'trash'} 
+                name={confirmModal.type === 'clear' ? 'trash' : (confirmModal.type === 'report' ? 'warning' : 'alert-circle')} 
                 size={32} 
-                color={confirmModal.type === 'block' ? '#ef4444' : '#2563eb'} 
+                color={confirmModal.type === 'clear' ? '#2563eb' : '#ef4444'} 
               />
             </View>
 
             <Text style={styles.modalTitle}>
-              {confirmModal.type === 'block' ? 'Block this User?' : 'Clear Conversation?'}
+              {confirmModal.type === 'report' ? 'Report this User?' : (confirmModal.type === 'block' ? 'Block this User?' : 'Clear Conversation?')}
             </Text>
             <Text style={styles.modalDesc}>
-              {confirmModal.type === 'block' 
-                ? "Are you sure? You won't be able to send or receive messages from this contact."
-                : "This will permanently delete all messages in this chat. This action cannot be undone."}
+              {confirmModal.type === 'report'
+                ? "Are you sure you want to report this user?"
+                : (confirmModal.type === 'block' 
+                  ? "Are you sure? You won't be able to send or receive messages from this contact."
+                  : "This will permanently delete all messages in this chat. This action cannot be undone.")}
             </Text>
 
             <View style={styles.modalActions}>
@@ -1048,13 +1082,21 @@ const ChatScreen = ({ navigation }) => {
                     } catch (error) {
                       Alert.alert('Error', 'Failed to block user');
                     }
+                  } else if (confirmModal.type === 'report') {
+                    try {
+                      await reportUser(receiverId);
+                      setConfirmModal({ visible: false, type: null });
+                      Alert.alert("Success", "You have successfully reported this user");
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to report user');
+                    }
                   } else {
                     setConfirmModal({ visible: false, type: null });
                   }
                 }}
                 style={[
                   styles.modalConfirm, 
-                  { backgroundColor: confirmModal.type === 'block' ? '#ef4444' : '#2563eb' },
+                  { backgroundColor: confirmModal.type === 'clear' ? '#2563eb' : '#ef4444' },
                   isClearing && { opacity: 0.7 }
                 ]}
                 activeOpacity={0.8}

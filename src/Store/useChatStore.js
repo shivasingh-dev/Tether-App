@@ -18,6 +18,8 @@ export const useChatStore = create((set, get) => ({
   setSelectedContactId: (id) => set({ selectedContactId: id }),
   blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
   setBlockStatus: (status) => set({ blockStatus: status }),
+  reportStatus: { isReportedByMe: false },
+  setReportStatus: (status) => set({ reportStatus: status }),
 
   
   // socket event listener setup
@@ -721,6 +723,7 @@ export const useChatStore = create((set, get) => ({
       currentConversation: null,
       selectedContactId: null,
       blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
+      reportStatus: { isReportedByMe: false },
     }),
 
   cleanUp: () => {
@@ -732,6 +735,7 @@ export const useChatStore = create((set, get) => ({
       onlineUsers: new Map(),
       typingUsers: new Map(),
       blockStatus: { isBlockedByMe: false, isBlockedByThem: false, canMessage: true },
+      reportStatus: { isReportedByMe: false },
     });
   },
 
@@ -772,6 +776,47 @@ export const useChatStore = create((set, get) => ({
       return res.data;
     } catch (error) {
       console.error("Error unblocking user", error);
+      throw error;
+    }
+  },
+
+  checkReportStatus: async (otherUserId) => {
+    try {
+      const res = await axiosInstance.get(`/report/report-status/${otherUserId}`);
+      if (res.data.success) {
+        set({ reportStatus: res.data.data });
+      }
+    } catch (error) {
+      console.error("Error checking report status", error);
+    }
+  },
+
+  reportUser: async (userIdToReport) => {
+    try {
+      const res = await axiosInstance.post("/report/report", { userIdToReport });
+      if (res.data.success) {
+        set((state) => ({
+          reportStatus: { ...state.reportStatus, isReportedByMe: true },
+        }));
+      }
+      return res.data;
+    } catch (error) {
+      console.error("Error reporting user", error);
+      throw error;
+    }
+  },
+
+  unreportUser: async (userIdToUnreport) => {
+    try {
+      const res = await axiosInstance.post("/report/unreport", { userIdToUnreport });
+      if (res.data.success) {
+        set((state) => ({
+          reportStatus: { ...state.reportStatus, isReportedByMe: false },
+        }));
+      }
+      return res.data;
+    } catch (error) {
+      console.error("Error unreporting user", error);
       throw error;
     }
   },
