@@ -94,6 +94,7 @@ const ChatScreen = ({ navigation }) => {
   const [isClearing, setIsClearing] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [showReactionMenu, setShowReactionMenu] = useState(false);
+  const [reactionMenuY, setReactionMenuY] = useState(0);
 
   // 🎤 AUDIO RECORDING STATES
   const [isRecording, setIsRecording] = useState(false);
@@ -159,10 +160,14 @@ const ChatScreen = ({ navigation }) => {
   const displayName = localName || selectedContact?.user?.fullName || selectedContact?.fullName;
 
   const handleVideoCall = () => {
+
+    Alert.alert('Coming Soon', 'Video Call feature will be available in upcoming updates.');
+    return;
+
     if (online) {
       initiateCall(
         receiverId,
-        selectedContact?.user?.fullName || selectedContact?.fullName,
+        displayName,
         selectedContact?.user?.profilePicture || selectedContact?.profilePicture,
         "video"
       );
@@ -172,10 +177,14 @@ const ChatScreen = ({ navigation }) => {
   };
 
   const handleVoiceCall = () => {
+
+    Alert.alert('Coming Soon', 'Voice Call feature will be available in upcoming updates.');
+    return;
+
     if (online) {
       initiateCall(
         receiverId,
-        selectedContact?.user?.fullName || selectedContact?.fullName,
+        displayName,
         selectedContact?.user?.profilePicture || selectedContact?.profilePicture,
         "audio"
       );
@@ -185,8 +194,9 @@ const ChatScreen = ({ navigation }) => {
   };
 
   // ── Selection & Reactions ──
-  const handleLongPress = (msg) => {
+  const handleLongPress = (msg, pageY) => {
     setSelectedMsg(msg);
+    setReactionMenuY(pageY || 300);
     setShowReactionMenu(true);
   };
 
@@ -215,7 +225,7 @@ const ChatScreen = ({ navigation }) => {
     if (selectedMsg) {
       Alert.alert(
         'Delete Message',
-        'Kya aap is message ko delete karna chahte hain?',
+        'Are you sure you want to delete this message?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -224,6 +234,7 @@ const ChatScreen = ({ navigation }) => {
             onPress: () => {
               deleteMessage(selectedMsg._id);
               setSelectedMsg(null);
+              setShowReactionMenu(false);
             },
           },
         ],
@@ -622,9 +633,11 @@ const ChatScreen = ({ navigation }) => {
               <TouchableOpacity style={styles.hBtn} onPress={handleCopy}>
                 <Ionicons name="copy-outline" size={20} color={colors.iconPrimary} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.hBtn} onPress={handleDeleteMsg}>
-                <Ionicons name="trash-outline" size={20} color="#f87171" />
-              </TouchableOpacity>
+              {((selectedMsg.sender?._id?.toString() || selectedMsg.sender?.toString()) === user?._id?.toString()) && (
+                <TouchableOpacity style={styles.hBtn} onPress={handleDeleteMsg}>
+                  <Ionicons name="trash-outline" size={20} color="#f87171" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.hBtn} onPress={() => setSelectedMsg(null)}>
                 <Ionicons name="close" size={22} color={colors.iconPrimary} />
               </TouchableOpacity>
@@ -755,7 +768,10 @@ const ChatScreen = ({ navigation }) => {
                     setSelectedMsg(null);
                   }}
                 >
-                  <View style={styles.reactionMenuBox}>
+                  <View style={[styles.reactionMenuBox, {
+                    position: 'absolute',
+                    top: Math.max(50, Math.min(reactionMenuY - 70, Dimensions.get('window').height - 150))
+                  }]}>
                     {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji, i) => (
                       <TouchableOpacity
                         key={i}

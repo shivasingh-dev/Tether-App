@@ -2,8 +2,12 @@ import axios from 'axios'
 import useUserStore from '../Store/useUserStore';
 import { getSocket } from './ChatServices';
 
-export const API_BASE_URL = `http://localhost:8000`;
-const apiUrl = `${API_BASE_URL}/api/`
+// export const API_BASE_URL = `http://localhost:8000`;
+
+export const API_BASE_URL = `https://tether-production-8bf7.up.railway.app`;
+
+
+const apiUrl = `${API_BASE_URL}/`
 
 
 const axiosInstance = axios.create({

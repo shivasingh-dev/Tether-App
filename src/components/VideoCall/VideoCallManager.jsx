@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from "react";
 import useCallStore from "../../Store/useCallStore";
 import VideoCallModal from "./VideoCallModal";
 import useUserStore from "../../Store/useUserStore";
+import { useContactStore } from "../../Store/useContactStore";
 
 const VideoCallManager = ({ socket }) => {
   const {
@@ -25,9 +26,14 @@ const VideoCallManager = ({ socket }) => {
       callType,
       callId,
     }) => {
+      const { registeredContacts, getLocalName } = useContactStore.getState();
+      const caller = registeredContacts.find(c => c._id === callerId);
+      const localName = getLocalName(caller?.phoneNumber);
+      const displayCallerName = localName || callerName;
+
       setIncomingCall({
         callerId,
-        callerName,
+        callerName: displayCallerName,
         callerAvatar,
         callId,
       });

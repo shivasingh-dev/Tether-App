@@ -44,7 +44,7 @@ const MessageBubble = ({
 
   return (
     <Pressable
-      onLongPress={() => onLongPress(message)}
+      onLongPress={(e) => onLongPress(message, e.nativeEvent.pageY)}
       onPress={() => onPress(message)}
       delayLongPress={300}
       style={[

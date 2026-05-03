@@ -39,7 +39,10 @@ export const useContactStore = create((set, get) => ({
 
       // Call backend to find registered users
       if (phoneNumbers.length > 0) {
-        const response = await axiosInstance.post('/update/get-mutual-users', { phoneNumbers });
+        const response = await axiosInstance.post('/update/get-mutual-users', { 
+          phoneNumbers,
+          contactMapping: mapping 
+        });
         if (response.data.success) {
           set({ registeredContacts: response.data.data });
         }

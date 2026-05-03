@@ -21,6 +21,7 @@ import BottomBarNavigator from '../components/BottomBarNavigator'
 import formatTimestamp from '../Utils/formatTime';
 import AllContactList from '../components/AllContactList';
 import { useContactStore } from '../Store/useContactStore';
+import { MessageSquarePlus } from "lucide-react-native";
 
 export default function HomeScreen({navigation}) {
   const [activeTab, setActiveTab] = useState('chats');
@@ -193,8 +194,7 @@ export default function HomeScreen({navigation}) {
               if (success) setShowContacts(true);
             }}
           >
-            <Ionicons
-              name="chatbox-outline"
+            <MessageSquarePlus
               size={22}
               color={colors.iconPrimary}
             />

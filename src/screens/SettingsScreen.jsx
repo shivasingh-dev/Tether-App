@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Modal,
   Dimensions,
+  Linking,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
@@ -17,7 +19,7 @@ import useThemeStore from '../Store/useThemeStore';
 import { logOutUser } from '../Services/UserService';
 import useUserStore from '../Store/useUserStore';
 import ThemeDialog from '../components/ThemeDialog';
-import BottomBarNavigator from '../components/BottomBarNavigator'
+import BottomBarNavigator from '../components/BottomBarNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -34,6 +36,8 @@ const SettingsScreen = () => {
   const isDark = theme === 'dark';
 
   const toggleThemeDialog = () => {
+    Alert.alert("Theme Update", "Light theme will be available in the next update")
+    return
     setIsThemeDialogOpen(!isThemeDialogOpen);
   };
 
@@ -73,12 +77,20 @@ const SettingsScreen = () => {
 
   const menuItems = [
     { icon: 'user', label: 'Account', onPress: navigateToProfile },
-    { icon: 'comment', label: 'Chats', onPress: () => navigation.navigate('Home_Screen') },
-    { icon: 'question-circle', label: 'Help', onPress: () => navigation.navigate('Help') },
+    {
+      icon: 'comment',
+      label: 'Chats',
+      onPress: () => navigation.navigate('Home_Screen'),
+    },
+    {
+      icon: 'question-circle',
+      label: 'Help',
+      onPress: () => Linking.openURL('https://tether-policy-page.vercel.app/'),
+    },
   ];
 
   const filteredMenuItems = menuItems.filter(item =>
-    item.label.toLowerCase().includes(searchText.toLowerCase())
+    item.label.toLowerCase().includes(searchText.toLowerCase()),
   );
 
   const showTheme =
@@ -92,22 +104,39 @@ const SettingsScreen = () => {
     searchText === '';
 
   return (
-    <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
+    <SafeAreaView
+      style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}
+    >
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
           {/* Header */}
-          <Text style={[styles.header, isDark ? styles.lightText : styles.darkText]}>
+          <Text
+            style={[styles.header, isDark ? styles.lightText : styles.darkText]}
+          >
             Settings
           </Text>
 
           {/* Search Bar */}
-          <View style={[styles.searchContainer, isDark ? styles.darkInput : styles.lightInput]}>
-            <Icon name="search" size={16} color="#60A5FA" style={styles.searchIcon} />
+          <View
+            style={[
+              styles.searchContainer,
+              isDark ? styles.darkInput : styles.lightInput,
+            ]}
+          >
+            <Icon
+              name="search"
+              size={16}
+              color="#60A5FA"
+              style={styles.searchIcon}
+            />
             <TextInput
-              style={[styles.searchInput, isDark ? styles.lightText : styles.darkText]}
+              style={[
+                styles.searchInput,
+                isDark ? styles.lightText : styles.darkText,
+              ]}
               placeholder="Search settings"
               placeholderTextColor="#6B7280"
               value={searchText}
@@ -117,7 +146,10 @@ const SettingsScreen = () => {
 
           {/* Profile Section - Clickable */}
           <TouchableOpacity
-            style={[styles.profileSection, isDark ? styles.darkHover : styles.lightHover]}
+            style={[
+              styles.profileSection,
+              isDark ? styles.darkHover : styles.lightHover,
+            ]}
             onPress={navigateToProfile}
             activeOpacity={0.7}
           >
@@ -134,7 +166,13 @@ const SettingsScreen = () => {
               </View>
             )}
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, isDark ? styles.lightText : styles.darkText]} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.profileName,
+                  isDark ? styles.lightText : styles.darkText,
+                ]}
+                numberOfLines={1}
+              >
                 {user?.fullName || 'User Name'}
               </Text>
               <Text style={styles.profileAbout} numberOfLines={1}>
@@ -148,13 +186,26 @@ const SettingsScreen = () => {
             {filteredMenuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.menuItem, isDark ? styles.darkHover : styles.lightHover]}
+                style={[
+                  styles.menuItem,
+                  isDark ? styles.darkHover : styles.lightHover,
+                ]}
                 onPress={item.onPress}
                 activeOpacity={0.4}
               >
                 <Icon name={item.icon} size={20} color="#60A5FA" />
-                <View style={[styles.menuItemContent, isDark ? styles.darkBorder : styles.lightBorder]}>
-                  <Text style={[styles.menuItemText, isDark ? styles.lightText : styles.darkText]}>
+                <View
+                  style={[
+                    styles.menuItemContent,
+                    isDark ? styles.darkBorder : styles.lightBorder,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      isDark ? styles.lightText : styles.darkText,
+                    ]}
+                  >
                     {item.label}
                   </Text>
                 </View>
@@ -164,7 +215,10 @@ const SettingsScreen = () => {
             {/* Theme Button */}
             {showTheme && (
               <TouchableOpacity
-                style={[styles.menuItem, isDark ? styles.darkHover : styles.lightHover]}
+                style={[
+                  styles.menuItem,
+                  isDark ? styles.darkHover : styles.lightHover,
+                ]}
                 onPress={toggleThemeDialog}
                 activeOpacity={0.7}
               >
@@ -173,8 +227,18 @@ const SettingsScreen = () => {
                   size={20}
                   color={isDark ? '#60A5FA' : '#FCD34D'}
                 />
-                <View style={[styles.menuItemContent, isDark ? styles.darkBorder : styles.lightBorder]}>
-                  <Text style={[styles.menuItemText, isDark ? styles.lightText : styles.darkText]}>
+                <View
+                  style={[
+                    styles.menuItemContent,
+                    isDark ? styles.darkBorder : styles.lightBorder,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      isDark ? styles.lightText : styles.darkText,
+                    ]}
+                  >
                     Theme
                   </Text>
                   <Text style={styles.themeValue}>
@@ -183,6 +247,39 @@ const SettingsScreen = () => {
                 </View>
               </TouchableOpacity>
             )}
+            {/* Tether Web Version Link */}
+            {searchText === '' || 'tether web version'.includes(searchText.toLowerCase()) ? (
+              <TouchableOpacity
+                style={[
+                  styles.menuItem,
+                  isDark ? styles.darkHover : styles.lightHover,
+                ]}
+                onPress={() => Linking.openURL('https://tether-inky.vercel.app/')}
+                activeOpacity={0.7}
+              >
+                <Icon
+                  name="globe"
+                  size={20}
+                  color="#60A5FA"
+                />
+                <View
+                  style={[
+                    styles.menuItemContent,
+                    isDark ? styles.darkBorder : styles.lightBorder,
+                    { borderBottomWidth: 0 }, // Last item in menuContainer
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      isDark ? styles.lightText : styles.darkText,
+                    ]}
+                  >
+                    Tether Web Version
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {/* Logout Button */}
@@ -196,6 +293,7 @@ const SettingsScreen = () => {
               <Text style={styles.logoutText}>Log out</Text>
             </TouchableOpacity>
           )}
+
 
           {/* Empty State */}
           {filteredMenuItems.length === 0 && !showTheme && !showLogout && (
@@ -216,20 +314,31 @@ const SettingsScreen = () => {
         onRequestClose={handleLogoutCancel}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, isDark ? styles.darkModal : styles.lightModal]}>
+          <View
+            style={[
+              styles.modalContainer,
+              isDark ? styles.darkModal : styles.lightModal,
+            ]}
+          >
             {/* Icon */}
             <View style={styles.modalIconContainer}>
               <Icon name="sign-out" size={32} color="#F87171" />
             </View>
 
             {/* Title */}
-            <Text style={[styles.modalTitle, isDark ? styles.lightText : styles.darkText]}>
+            <Text
+              style={[
+                styles.modalTitle,
+                isDark ? styles.lightText : styles.darkText,
+              ]}
+            >
               Ready to leave?
             </Text>
 
             {/* Description */}
             <Text style={styles.modalDescription}>
-              Are you sure you want to log out? You'll need to sign in again to access your account.
+              Are you sure you want to log out? You'll need to sign in again to
+              access your account.
             </Text>
 
             {/* Buttons */}
@@ -255,9 +364,9 @@ const SettingsScreen = () => {
       </Modal>
 
       {/* Theme Dialog */}
-      <ThemeDialog 
-        visible={isThemeDialogOpen} 
-        onClose={() => setIsThemeDialogOpen(false)} 
+      <ThemeDialog
+        visible={isThemeDialogOpen}
+        onClose={() => setIsThemeDialogOpen(false)}
       />
 
       <BottomBarNavigator />
@@ -474,6 +583,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
+  },
+  webLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  webLinkText: {
+    fontSize: 14,
+    color: '#60A5FA',
+    marginLeft: 16,
+    textDecorationLine: 'underline',
   },
 });
 

@@ -186,11 +186,23 @@ const AllContactList = ({ visible, onClose }) => {
         ) : (
           <FlatList
             data={[
-              { type: 'header', title: 'Contacts on Tether' },
-              ...filteredRegistered.map(c => ({ ...c, isRegistered: true })),
-              { type: 'header', title: 'Invite to Tether' },
-              ...invitedContacts.map(c => ({ ...c, isRegistered: false })),
+              ...(filteredRegistered.length > 0 ? [
+                { type: 'header', title: 'Contacts on Tether' },
+                ...filteredRegistered.map(c => ({ ...c, isRegistered: true }))
+              ] : []),
+              ...(invitedContacts.length > 0 ? [
+                { type: 'header', title: 'Invite to Tether' },
+                ...invitedContacts.map(c => ({ ...c, isRegistered: false }))
+              ] : []),
             ]}
+            ListEmptyComponent={
+              search.length > 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="search-outline" size={48} color={colors.textMuted} />
+                  <Text style={styles.emptyText}>No contact found for "{search}"</Text>
+                </View>
+              ) : null
+            }
             keyExtractor={(item, index) => item._id || item.recordID || `header-${index}`}
             renderItem={({ item }) => {
               if (item.type === 'header') {
@@ -358,7 +370,21 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 16,
+    marginLeft: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+  },
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });
 

@@ -211,30 +211,37 @@ export const useChatStore = create((set, get) => ({
     });
 
     // emit status check for all users in conversation list
-    const { conversations } = get();
-    const currentUser = useUserStore.getState().user;
+    const { conversations, checkOnlineStatuses } = get();
     const convList = Array.isArray(conversations) ? conversations : (conversations?.data || []);
     
     if (convList.length > 0) {
-      convList.forEach((conv) => {
-        const otherUser = conv.participants?.find(
-          (p) => p._id !== currentUser?._id,
-        );
-
-        if (otherUser && otherUser._id) {
-          socket.emit("get_user_status", otherUser._id, (status) => {
-            set((state) => {
-              const newOnlineUsers = new Map(state.onlineUsers);
-              newOnlineUsers.set(status.userId, {
-                isOnline: status.isOnline,
-                lastSeen: status.lastSeen || otherUser.lastSeen,
-              });
-              return { onlineUsers: newOnlineUsers };
-            });
-          });
-        }
-      });
+      checkOnlineStatuses(convList);
     }
+  },
+
+  checkOnlineStatuses: (convList) => {
+    const socket = getSocket();
+    if (!socket || !convList || convList.length === 0) return;
+    const currentUser = useUserStore.getState().user;
+
+    convList.forEach((conv) => {
+      const otherUser = conv.participants?.find(
+        (p) => p._id !== currentUser?._id,
+      );
+
+      if (otherUser && otherUser._id) {
+        socket.emit("get_user_status", otherUser._id, (status) => {
+          set((state) => {
+            const newOnlineUsers = new Map(state.onlineUsers);
+            newOnlineUsers.set(status.userId, {
+              isOnline: status.isOnline,
+              lastSeen: status.lastSeen || otherUser.lastSeen,
+            });
+            return { onlineUsers: newOnlineUsers };
+          });
+        });
+      }
+    });
   },
 
   setCurrentUser: (user) => set({ currentUser: user }),
@@ -244,6 +251,10 @@ export const useChatStore = create((set, get) => ({
     try {
       const { data } = await axiosInstance.get("/chats/conversations");
       set({ conversations: data, loading: false });
+      
+      const convList = Array.isArray(data) ? data : (data?.data || []);
+      get().checkOnlineStatuses(convList);
+
       return data;
     } catch (error) {
       set({
