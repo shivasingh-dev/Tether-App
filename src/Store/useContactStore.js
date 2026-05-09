@@ -59,17 +59,22 @@ export const useContactStore = create((set, get) => ({
 
   requestPermission: async () => {
     if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
-        {
-          title: 'Contacts Permission',
-          message: 'Tether needs access to your contacts to show who is on the app.',
-          buttonPositive: 'OK',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+          {
+            title: 'Contacts Permission',
+            message: 'Tether needs access to your contacts to show who is on the app.',
+            buttonPositive: 'OK',
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn('Permission request error:', err);
+        return false;
+      }
     }
-    return true; // iOS permission handled by the library usually or through Info.plist
+    return true;
   },
 
   getLocalName: (phoneNumber) => {

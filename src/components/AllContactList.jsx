@@ -115,7 +115,14 @@ const AllContactList = ({ visible, onClose }) => {
           </Text>
         </View>
 
-        {!isRegistered && (
+        {isRegistered ? (
+          <TouchableOpacity 
+            style={[styles.inviteBtn, { borderColor: '#10b981' }]}
+            onPress={() => handleContactPress(item)}
+          >
+            <Text style={[styles.inviteText, { color: '#10b981' }]}>Chat</Text>
+          </TouchableOpacity>
+        ) : (
           <TouchableOpacity 
             style={styles.inviteBtn}
             onPress={() => handleInvite(item.phoneNumbers[0]?.number)}

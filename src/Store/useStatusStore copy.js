@@ -1,5 +1,5 @@
-import { getSocket } from "../Services/ChatServices";
-import axiosInstance from "../Services/UrlService";
+import { getSocket } from "@/Services/ChatServices";
+import axiosInstance from "@/Services/UrlService";
 import { create } from "zustand";
 
 const useStatusStore = create((set, get) => ({
@@ -28,7 +28,7 @@ const useStatusStore = create((set, get) => ({
     }),
       socket.on("status_deleted", (statusId) => {
         set((state) => ({
-          statuses: state.statuses.filter((s) => s?._id !== statusId),
+          statuses: state.statuses.filter((s) => s?._id === statusId),
         }));
       }),
       socket.on("status_viewed", (statusId, viewers) => {
@@ -40,7 +40,7 @@ const useStatusStore = create((set, get) => ({
       }));
   },
 
-  cleanupSocket: () => {
+  cleanUpSocket: () => {
     const socket = getSocket();
     if (socket) {
       socket.off("new_status");
@@ -102,7 +102,7 @@ const useStatusStore = create((set, get) => ({
   viewStatus: async (statusId) => {
     try {
       set({ loading: true, error: null });
-      await axiosInstance.put(`/status/${statusId}/view`);
+      await axiosInstance.post(`status/${statusId}/view`);
       set((state) => ({
         statuses: state?.statuses?.map((status) =>
           status?._id === statusId ? { ...status } : status,
@@ -153,22 +153,19 @@ const useStatusStore = create((set, get) => ({
     const { statuses } = get();
     return statuses.reduce((acc, status) => {
       const statusUserId = status?.user?._id;
-      if (!statusUserId) return acc;
-      
       if (!acc[statusUserId]) {
         acc[statusUserId] = {
-          _id: statusUserId,
+          id: statusUserId,
           name: status?.user?.fullName,
-          phoneNumber: status?.user?.phoneNumber,
           avatar: status?.user?.profilePicture,
+          phoneNumber: status?.user?.phoneNumber,
           statuses: [],
         };
       }
 
       acc[statusUserId].statuses.push({
         id: status?._id,
-        media: status?.media,
-        content: status?.content,
+        media: status?.content,
         contentType: status?.contentType,
         timestamp: status?.createdAt,
         viewers: status?.viewers,
@@ -185,7 +182,7 @@ const useStatusStore = create((set, get) => ({
   getOtherStatuses: (userId) => {
     const groupedStatus = get().getGroupedStatus();
     return Object.values(groupedStatus).filter(
-      (contact) => contact?._id !== userId
+      (contact) => contact?.id !== userId
     );
   },
 

@@ -32,6 +32,7 @@ import MessageBubble from '../components/MessageBubble';
 import EmojiPicker from 'rn-emoji-keyboard';
 import useCallStore from '../Store/useCallStore';
 import { useContactStore } from '../Store/useContactStore';
+import ContactDetail from '../components/ContactDetail';
 
 // 🎤 Audio recording - try to import, fallback if not available
 let useAudioRecorderHook = null;
@@ -80,6 +81,55 @@ const formatDuration = ms => {
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 };
 
+const MarqueeText = ({ text, style, isTypingOrOnline }) => {
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [textWidth, setTextWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    scrollX.setValue(0);
+    if (textWidth > containerWidth && containerWidth > 0) {
+      const duration = (textWidth - containerWidth + 40) * 50;
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(1000),
+          Animated.timing(scrollX, {
+            toValue: -(textWidth - containerWidth + 20),
+            duration: duration,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1000),
+          Animated.timing(scrollX, {
+            toValue: 0,
+            duration: duration,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [textWidth, containerWidth, text]);
+
+  return (
+    <View style={{ overflow: 'hidden' }}>
+      <Text
+        onLayout={(e) => setTextWidth(e.nativeEvent.layout.width)}
+        style={[style, { position: 'absolute', opacity: 0 }]}
+        numberOfLines={1}
+      >
+        {text}
+      </Text>
+      <View onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}>
+        <Animated.Text
+          style={[style, { transform: [{ translateX: scrollX }], width: textWidth || 'auto' }]}
+          numberOfLines={1}
+        >
+          {text}
+        </Animated.Text>
+      </View>
+    </View>
+  );
+};
+
 // ================================================================
 //  ChatScreen
 // ================================================================
@@ -100,6 +150,7 @@ const ChatScreen = ({ navigation }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioPath, setAudioPath] = useState(null);
+  const [showContactDetail, setShowContactDetail] = useState(false);
 
   const typingTimeoutRef = useRef(null);
   const flatListRef = useRef(null);
@@ -612,7 +663,11 @@ const ChatScreen = ({ navigation }) => {
             </View>
           )}
 
-          <View style={{ flex: 1 }}>
+          <TouchableOpacity 
+            style={{ flex: 1, paddingLeft: 8 }} 
+            onPress={() => setShowContactDetail(true)}
+            activeOpacity={0.7}
+          >
             {selectedMsg ? (
               <Text style={styles.hName}>1</Text>
             ) : (
@@ -620,18 +675,16 @@ const ChatScreen = ({ navigation }) => {
                 <Text style={styles.hName} numberOfLines={1}>
                   {displayName}
                 </Text>
-                <Text
+                <MarqueeText 
+                  text={statusText}
                   style={[
                     styles.hStatus,
                     { color: isTyping || online ? '#4ade80' : colors.textMuted },
                   ]}
-                  numberOfLines={1}
-                >
-                  {statusText}
-                </Text>
+                />
               </>
             )}
-          </View>
+          </TouchableOpacity>
 
           {selectedMsg ? (
             <View style={{ flexDirection: 'row' }}>
@@ -1019,6 +1072,19 @@ const ChatScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* CONTACT DETAIL MODAL */}
+        <ContactDetail
+          visible={showContactDetail}
+          onClose={() => setShowContactDetail(false)}
+          contact={{
+            ...selectedContact?.user,
+            fullName: displayName,
+          }}
+          statusText={statusText}
+          isOnline={isTyping || online}
+          messages={messages}
+        />
       </KeyboardAvoidingView>
 
       {/* CONFIRMATION MODAL */}
