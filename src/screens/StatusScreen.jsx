@@ -45,7 +45,7 @@ export default function StatusScreen() {
     fetchStatuses,
     clearError,
     initializeSocket,
-    cleanUpSocket,
+    cleanupSocket,
   } = useStatusStore();
 
   // Local State
@@ -69,7 +69,7 @@ export default function StatusScreen() {
     initializeSocket();
 
     return () => {
-      cleanUpSocket();
+      cleanupSocket();
       clearError();
     };
   }, []);

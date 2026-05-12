@@ -57,6 +57,7 @@ export default function SignUpScreen({ navigation }) {
         setFullName(values.fullName);
         await sendPhoneNumOtp(values.phoneNumber, values.fullName);
         setSendPhoneOtp(true);
+        setIsVerifyPhoneOtp(true); // Jump to step 3
       } catch (error) {
         // setError(error.message)
         // console.error("Error in step 1 formik", error)
@@ -287,8 +288,6 @@ export default function SignUpScreen({ navigation }) {
 
   const currentStep = !sendPhoneOtp
     ? 1
-    : !isVerifyPhoneOtp
-    ? 2
     : !sendEmailOtp
     ? 3
     : 4;
@@ -440,7 +439,7 @@ export default function SignUpScreen({ navigation }) {
         <>
           {/* Progress Bar */}
           <View style={styles.progressRow}>
-            {[1, 2, 3, 4].map(s => (
+            {[1, 3, 4].map(s => (
               <View
                 key={s}
                 style={[
@@ -556,10 +555,10 @@ export default function SignUpScreen({ navigation }) {
                         color="#fff"
                         style={{ marginRight: 10 }}
                       />
-                      <Text style={styles.otpBtn}>Sending</Text>
+                      <Text style={styles.otpBtn}>Loading...</Text>
                     </View>
                   ) : (
-                    <Text style={styles.otpBtn}>Send OTP</Text>
+                    <Text style={styles.otpBtn}>Continue</Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>

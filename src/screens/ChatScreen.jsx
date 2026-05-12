@@ -81,46 +81,90 @@ const formatDuration = ms => {
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 };
 
-const MarqueeText = ({ text, style, isTypingOrOnline }) => {
+const MarqueeText = ({ text, style }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
-  const [textWidth, setTextWidth] = useState(0);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const animRef = useRef(null);
+  const fullTextWidth = useRef(0);
+  const visibleWidth = useRef(0);
+  const [needsScroll, setNeedsScroll] = useState(false);
+  const [overflow, setOverflow] = useState(0);
+
+  const checkIfScrollNeeded = () => {
+    const tw = fullTextWidth.current;
+    const cw = visibleWidth.current;
+    if (tw > 0 && cw > 0 && tw > cw) {
+      setNeedsScroll(true);
+      setOverflow(tw - cw);
+    } else {
+      setNeedsScroll(false);
+      setOverflow(0);
+    }
+  };
 
   useEffect(() => {
+    if (animRef.current) {
+      animRef.current.stop();
+      animRef.current = null;
+    }
     scrollX.setValue(0);
-    if (textWidth > containerWidth && containerWidth > 0) {
-      const duration = (textWidth - containerWidth + 40) * 50;
-      Animated.loop(
+
+    if (needsScroll && overflow > 0) {
+      const duration = overflow * 45;
+      const anim = Animated.loop(
         Animated.sequence([
-          Animated.delay(1000),
+          Animated.delay(1500),
           Animated.timing(scrollX, {
-            toValue: -(textWidth - containerWidth + 20),
-            duration: duration,
+            toValue: -overflow,
+            duration,
             useNativeDriver: true,
           }),
-          Animated.delay(1000),
+          Animated.delay(1500),
           Animated.timing(scrollX, {
             toValue: 0,
-            duration: duration,
+            duration,
             useNativeDriver: true,
           }),
-        ])
-      ).start();
+        ]),
+      );
+      animRef.current = anim;
+      anim.start();
     }
-  }, [textWidth, containerWidth, text]);
+
+    return () => {
+      if (animRef.current) {
+        animRef.current.stop();
+      }
+    };
+  }, [needsScroll, overflow, text]);
 
   return (
-    <View style={{ overflow: 'hidden' }}>
-      <Text
-        onLayout={(e) => setTextWidth(e.nativeEvent.layout.width)}
-        style={[style, { position: 'absolute', opacity: 0 }]}
-        numberOfLines={1}
+    <View style={{ flex: 1 }}>
+      {/* Hidden measurer — same style but no numberOfLines, in a wide invisible wrapper */}
+      <View style={{ position: 'absolute', top: 0, left: 0, opacity: 0, flexDirection: 'row' }}>
+        <Text
+          style={style}
+          onLayout={(e) => {
+            fullTextWidth.current = e.nativeEvent.layout.width;
+            checkIfScrollNeeded();
+          }}
+        >
+          {text}
+        </Text>
+      </View>
+
+      {/* Visible scrolling text */}
+      <View
+        style={{ overflow: 'hidden' }}
+        onLayout={(e) => {
+          visibleWidth.current = e.nativeEvent.layout.width;
+          checkIfScrollNeeded();
+        }}
       >
-        {text}
-      </Text>
-      <View onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}>
         <Animated.Text
-          style={[style, { transform: [{ translateX: scrollX }], width: textWidth || 'auto' }]}
+          style={[
+            style,
+            needsScroll && { width: fullTextWidth.current, transform: [{ translateX: scrollX }] },
+          ]}
           numberOfLines={1}
         >
           {text}
@@ -637,7 +681,7 @@ const ChatScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* HEADER */}

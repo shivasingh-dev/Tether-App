@@ -21,6 +21,7 @@ import useUserStore from '../Store/useUserStore';
 import ThemeDialog from '../components/ThemeDialog';
 import BottomBarNavigator from '../components/BottomBarNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -269,14 +270,19 @@ const SettingsScreen = () => {
                     { borderBottomWidth: 0 }, // Last item in menuContainer
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.menuItemText,
-                      isDark ? styles.lightText : styles.darkText,
-                    ]}
-                  >
-                    Tether Web Version
-                  </Text>
+                  <View>
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        isDark ? styles.lightText : styles.darkText,
+                      ]}
+                    >
+                      Tether Web Version
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                      https://tether-inky.vercel.app/
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ) : null}
