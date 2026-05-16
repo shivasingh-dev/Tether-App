@@ -167,14 +167,14 @@ const ContactDetail = ({ visible, onClose, contact, messages = [], statusText, i
 
           {/* Action Section */}
           <View style={styles.section}>
-            <TouchableOpacity style={styles.actionItem}>
+            {/* <TouchableOpacity style={styles.actionItem}>
               <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
               <Text style={styles.actionText}>Mute Notifications</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionItem}>
               <Ionicons name="image-outline" size={22} color={colors.textPrimary} />
               <Text style={styles.actionText}>Media Visibility</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity style={styles.actionItem}>
               <Ionicons name="lock-closed-outline" size={22} color={colors.textPrimary} />
               <View>

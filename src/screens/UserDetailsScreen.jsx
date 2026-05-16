@@ -8,12 +8,11 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
-  Modal,
-  Platform,
+  Keyboard,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { launchImageLibrary } from 'react-native-image-picker';
-import EmojiSelector from 'react-native-emoji-selector';
+import EmojiPicker from 'rn-emoji-keyboard';
 import Toast from 'react-native-toast-message';
 import useUserStore from '../Store/useUserStore';
 import { updateUserProfile } from '../Services/UserService';
@@ -123,7 +122,8 @@ const UserDetailsScreen = () => {
     }
   };
 
-  const handleEmojiSelect = (emoji, field) => {
+  const handleEmojiSelect = (emojiObject, field) => {
+    const emoji = emojiObject.emoji;
     if (field === 'name') {
       setName((prev) => prev + emoji);
       setShowNameEmoji(false);
@@ -243,7 +243,10 @@ const UserDetailsScreen = () => {
                       <Icon name="check" size={18} color="#60A5FA" />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => setShowNameEmoji(!showNameEmoji)}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setShowNameEmoji(true);
+                      }}
                       style={styles.actionButton}
                       activeOpacity={0.7}
                     >
@@ -300,7 +303,10 @@ const UserDetailsScreen = () => {
                       <Icon name="check" size={18} color="#60A5FA" />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => setShowAboutEmoji(!showAboutEmoji)}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setShowAboutEmoji(true);
+                      }}
                       style={styles.actionButton}
                       activeOpacity={0.7}
                     >
@@ -355,57 +361,55 @@ const UserDetailsScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Emoji Picker Modal for Name */}
-      <Modal
-        visible={showNameEmoji}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowNameEmoji(false)}
-      >
-        <View style={styles.emojiModalOverlay}>
-          <View style={[styles.emojiContainer, isDark ? styles.darkModal : styles.lightModal]}>
-            <View style={styles.emojiHeader}>
-              <Text style={[styles.emojiTitle, isDark ? styles.lightText : styles.darkText]}>
-                Select Emoji
-              </Text>
-              <TouchableOpacity onPress={() => setShowNameEmoji(false)}>
-                <Icon name="times" size={24} color="#9CA3AF" />
-              </TouchableOpacity>
-            </View>
-            <EmojiSelector
-              onEmojiSelected={(emoji) => handleEmojiSelect(emoji, 'name')}
-              columns={8}
-              showSearchBar={false}
-            />
-          </View>
-        </View>
-      </Modal>
+      {/* Emoji Picker for Name */}
+      <EmojiPicker
+        onEmojiSelected={(emojiObject) => handleEmojiSelect(emojiObject, 'name')}
+        open={showNameEmoji}
+        onClose={() => setShowNameEmoji(false)}
+        theme={isDark ? {
+          backdrop: '#00000090',
+          knob: '#60A5FA',
+          container: '#06234f',
+          header: '#60A5FA',
+          category: {
+            icon: '#60A5FA',
+            iconActive: '#FFFFFF',
+            container: '#020818',
+            containerActive: '#3B82F6',
+          },
+          search: {
+            text: '#FFFFFF',
+            placeholder: '#6B7280',
+            icon: '#60A5FA',
+            background: '#020818',
+          },
+        } : undefined}
+      />
 
-      {/* Emoji Picker Modal for About */}
-      <Modal
-        visible={showAboutEmoji}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowAboutEmoji(false)}
-      >
-        <View style={styles.emojiModalOverlay}>
-          <View style={[styles.emojiContainer, isDark ? styles.darkModal : styles.lightModal]}>
-            <View style={styles.emojiHeader}>
-              <Text style={[styles.emojiTitle, isDark ? styles.lightText : styles.darkText]}>
-                Select Emoji
-              </Text>
-              <TouchableOpacity onPress={() => setShowAboutEmoji(false)}>
-                <Icon name="times" size={24} color="#9CA3AF" />
-              </TouchableOpacity>
-            </View>
-            <EmojiSelector
-              onEmojiSelected={(emoji) => handleEmojiSelect(emoji, 'about')}
-              columns={8}
-              showSearchBar={false}
-            />
-          </View>
-        </View>
-      </Modal>
+      {/* Emoji Picker for About */}
+      <EmojiPicker
+        onEmojiSelected={(emojiObject) => handleEmojiSelect(emojiObject, 'about')}
+        open={showAboutEmoji}
+        onClose={() => setShowAboutEmoji(false)}
+        theme={isDark ? {
+          backdrop: '#00000090',
+          knob: '#60A5FA',
+          container: '#06234f',
+          header: '#60A5FA',
+          category: {
+            icon: '#60A5FA',
+            iconActive: '#FFFFFF',
+            container: '#020818',
+            containerActive: '#3B82F6',
+          },
+          search: {
+            text: '#FFFFFF',
+            placeholder: '#6B7280',
+            icon: '#60A5FA',
+            background: '#020818',
+          },
+        } : undefined}
+      />
     </SafeAreaView>
   );
 };
@@ -569,14 +573,16 @@ const styles = StyleSheet.create({
   },
   emojiModalOverlay: {
     flex: 1,
+    width: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
   },
   emojiContainer: {
-    height: '70%',
+    height: '60%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 16,
+    overflow: 'hidden',
   },
   darkModal: {
     backgroundColor: '#06234f',

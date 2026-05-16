@@ -9,12 +9,10 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
-import DocumentPicker from 'react-native-document-picker';
-import Video from 'react-native-video';
+
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import Svg, { Circle } from 'react-native-svg';
 import Toast from 'react-native-toast-message';
@@ -76,91 +74,18 @@ export default function StatusScreen() {
 
   // File Selection
   const handleFileSelection = async () => {
-    Alert.alert(
-      'Select Media',
-      'Choose media type',
-      [
-        {
-          text: 'Image',
-          onPress: () => handleImagePicker(),
-        },
-        {
-          text: 'Video',
-          onPress: () => handleVideoPicker(),
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
+    handleImagePicker();
   };
 
   const handleImagePicker = async () => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        quality: 0.8,
-      });
-
-      if (result.didCancel) return;
-      
-      if (result.assets && result.assets[0]) {
-        const file = result.assets[0];
-        setSelectedFile({
-          uri: file.uri,
-          type: file.type,
-          name: file.fileName || 'image.jpg',
-          size: file.fileSize,
-        });
-        setFilePreview(file.uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error selecting image',
-      });
-    }
+    Toast.show({
+      type: 'info',
+      text1: 'Upcoming Feature',
+      text2: 'Media status updates will be available in future updates!',
+    });
   };
 
-  const handleVideoPicker = async () => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'video',
-      });
 
-      if (result.didCancel) return;
-      
-      if (result.assets && result.assets[0]) {
-        const file = result.assets[0];
-        
-        // Video size validation (max 50MB)
-        if (file.fileSize && file.fileSize > 50 * 1024 * 1024) {
-          Toast.show({
-            type: 'error',
-            text1: 'Video too large',
-            text2: 'Maximum size is 50MB',
-          });
-          return;
-        }
-
-        setSelectedFile({
-          uri: file.uri,
-          type: file.type,
-          name: file.fileName || 'video.mp4',
-          size: file.fileSize,
-        });
-        setFilePreview(file.uri);
-      }
-    } catch (error) {
-      console.error('Error picking video:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error selecting video',
-      });
-    }
-  };
 
   const formatFileSize = (bytes) => {
     if (!bytes) return '0 B';
@@ -428,26 +353,15 @@ export default function StatusScreen() {
             {/* File Preview */}
             {filePreview && (
               <View style={styles.filePreviewContainer}>
-                {selectedFile?.type?.startsWith('video/') ? (
-                  <Video
-                    source={{ uri: filePreview }}
-                    style={styles.filePreview}
-                    controls
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Image
-                    source={{ uri: filePreview }}
-                    style={styles.filePreview}
-                    resizeMode="cover"
-                  />
-                )}
+                <Image
+                  source={{ uri: filePreview }}
+                  style={styles.filePreview}
+                  resizeMode="cover"
+                />
 
                 <View style={styles.fileInfo}>
                   <View style={styles.fileInfoLeft}>
-                    <Text style={styles.fileIcon}>
-                      {selectedFile?.type?.startsWith('video/') ? '🎥' : '🖼️'}
-                    </Text>
+                    <Text style={styles.fileIcon}>🖼️</Text>
                     <View>
                       <Text style={styles.fileName} numberOfLines={1}>
                         {selectedFile?.name}

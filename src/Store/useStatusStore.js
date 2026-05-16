@@ -1,6 +1,7 @@
 import { getSocket } from "../Services/ChatServices";
 import axiosInstance from "../Services/UrlService";
 import { create } from "zustand";
+import { Platform } from "react-native";
 
 const useStatusStore = create((set, get) => ({
   // state
@@ -70,7 +71,15 @@ const useStatusStore = create((set, get) => ({
       const formData = new FormData();
 
       if (statusData?.file) {
-        formData.append("media", statusData?.file);
+        const uri = Platform.OS === 'android' 
+          ? statusData.file.uri 
+          : statusData.file.uri.replace('file://', '');
+        
+        formData.append("media", {
+          uri: uri,
+          name: statusData.file.name || 'photo.jpg',
+          type: statusData.file.type || 'image/jpeg',
+        });
       }
 
       if (statusData?.content?.trim()) {
@@ -79,6 +88,7 @@ const useStatusStore = create((set, get) => ({
 
       const { data } = await axiosInstance.post("/status", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 60000,
       });
 
       // add status to local state

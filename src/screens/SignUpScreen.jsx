@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
@@ -51,24 +52,37 @@ export default function SignUpScreen({ navigation }) {
     initialValues: stepOneInitialValues,
     validationSchema: stepOneSchema,
     onSubmit: async values => {
-      try {
-        setIsLoading(true);
-        setPhoneNumber(values.phoneNumber);
-        setFullName(values.fullName);
-        await sendPhoneNumOtp(values.phoneNumber, values.fullName);
-        setSendPhoneOtp(true);
-        setIsVerifyPhoneOtp(true); // Jump to step 3
-      } catch (error) {
-        // setError(error.message)
-        // console.error("Error in step 1 formik", error)
-        Toast.show({
-          type: 'error',
-          text1: 'Failed',
-          text2: error.message,
-        });
-      } finally {
-        setIsLoading(false);
-      }
+      Alert.alert(
+        'Verify Number',
+        `Is this your correct phone number?\n+91 ${values.phoneNumber}`,
+        [
+          {
+            text: 'Edit',
+            style: 'cancel',
+          },
+          {
+            text: 'Yes',
+            onPress: async () => {
+              try {
+                setIsLoading(true);
+                setPhoneNumber(values.phoneNumber);
+                setFullName(values.fullName);
+                await sendPhoneNumOtp(values.phoneNumber, values.fullName);
+                setSendPhoneOtp(true);
+                setIsVerifyPhoneOtp(true); // Jump to step 3
+              } catch (error) {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Failed',
+                  text2: error.message,
+                });
+              } finally {
+                setIsLoading(false);
+              }
+            },
+          },
+        ],
+      );
     },
   });
 

@@ -20,6 +20,7 @@ const useLayoutStore = create(
     {
       name: "layout-storage",
       storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => ({ selectedContact: state.selectedContact }),
     }
   )
 );

@@ -378,26 +378,20 @@ export const useChatStore = create((set, get) => ({
       if (messageStatus) formData.append("messageStatus", messageStatus);
       
       if (media) {
-        const cleanUri = Platform.OS === 'android' && media.uri.startsWith('file://') 
-          ? media.uri 
-          : media.uri.startsWith('content://') 
-            ? media.uri 
-            : `file://${media.uri}`;
-
+        // Android image picker returns content:// or file:// URIs - use as-is
         formData.append("media", {
-          uri: cleanUri,
+          uri: media.uri,
           type: media.type || 'image/jpeg',
-          name: media.name || 'media.jpg',
+          name: media.name || 'image.jpg',
         });
       }
 
       const { data } = await axiosInstance.post(
-        "chats/send-message",
+        "/chats/send-message",
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 60000,
         }
       );
       const messageData = data.data || data;

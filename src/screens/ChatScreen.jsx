@@ -523,10 +523,7 @@ const ChatScreen = ({ navigation }) => {
 
   const handlePickImage = () => {
     setShowAttachMenu(false);
-    Alert.alert("Coming Soon", "Sending image and video will be available soon!");
-    return;
-    /*
-    launchImageLibrary({ mediaType: 'mixed', quality: 0.85 }, async res => {
+    launchImageLibrary({ mediaType: 'photo', quality: 0.7, maxWidth: 1024, maxHeight: 1024 }, async res => {
       if (res.didCancel || res.errorCode) return;
       const asset = res.assets?.[0];
       if (!asset) return;
@@ -535,33 +532,22 @@ const ChatScreen = ({ navigation }) => {
       const fileType = asset.type || 'image/jpeg';
 
       // File size validation
-      if (fileType.startsWith('image/')) {
-        if (fileSize > FILE_SIZE_LIMITS.IMAGE.MAX_SIZE) {
-          Alert.alert(
-            'Image Too Large',
-            `Selected image is ${formatFileSize(fileSize)}.\nMaximum allowed: ${FILE_SIZE_LIMITS.IMAGE.LABEL}`,
-          );
-          return;
-        }
-      } else if (fileType.startsWith('video/')) {
-        if (fileSize > FILE_SIZE_LIMITS.VIDEO.MAX_SIZE) {
-          Alert.alert(
-            'Video Too Large',
-            `Selected video is ${formatFileSize(fileSize)}.\nMaximum allowed: ${FILE_SIZE_LIMITS.VIDEO.LABEL}`,
-          );
-          return;
-        }
+      if (fileSize > FILE_SIZE_LIMITS.IMAGE.MAX_SIZE) {
+        Alert.alert(
+          'Image Too Large',
+          `Selected image is ${formatFileSize(fileSize)}.\nMaximum allowed: ${FILE_SIZE_LIMITS.IMAGE.LABEL}`,
+        );
+        return;
       }
 
       setSelectedFile({
         uri: asset.uri,
         type: fileType,
-        name: asset.fileName || 'media.jpg',
+        name: asset.fileName || 'image.jpg',
         size: fileSize,
       });
       setFilePreviewUri(asset.uri);
     });
-    */
   };
 
   // ── Send text/image ──
@@ -879,11 +865,20 @@ const ChatScreen = ({ navigation }) => {
               data={flatData}
               keyExtractor={item => item._id || item.id || item.tempId}
               renderItem={renderItem}
-              contentContainerStyle={styles.msgList}
+              contentContainerStyle={[styles.msgList, flatData.length === 0 && { flex: 1, justifyContent: 'center' }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({ animated: false })
+              onContentSizeChange={() => {
+                if (flatData.length > 0) {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                }
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyMsgContainer}>
+                  <Ionicons name="chatbubbles-outline" size={80} color={colors.iconSecondary} />
+                  <Text style={styles.emptyMsgText}>No messages yet</Text>
+                  <Text style={styles.emptyMsgSubtext}>Start a conversation with {displayName}!</Text>
+                </View>
               }
             />
             
@@ -1033,6 +1028,8 @@ const ChatScreen = ({ navigation }) => {
           <View>
             <TouchableOpacity
               onPress={() => {
+                Alert.alert("Coming Soon", "Sending image and video will be available soon!");
+                return;
                 setShowAttachMenu(p => !p);
                 setShowEmojiPanel(false);
               }}
@@ -1596,6 +1593,25 @@ const styles = StyleSheet.create({
   },
   reactionEmojiText: {
     fontSize: 26,
+  },
+  emptyMsgContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 100,
+  },
+  emptyMsgText: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  emptyMsgSubtext: {
+    color: colors.textMuted,
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
 
