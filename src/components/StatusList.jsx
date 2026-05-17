@@ -103,16 +103,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#06234f',
-    borderWidth: 1,
-    borderColor: 'rgba(41, 121, 255, 0.2)',
+    backgroundColor: '#1e50ccff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#60a5fa',
+    color: '#fff',
   },
   statusRing: {
     position: 'absolute',

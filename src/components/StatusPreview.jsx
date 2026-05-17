@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#06234f',
+    backgroundColor: '#1e50ccff',
     borderWidth: 2,
     borderColor: 'rgba(96, 165, 250, 0.5)',
     justifyContent: 'center',
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   headerAvatarText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#60a5fa',
+    color: '#fff',
   },
   headerInfo: {
     marginLeft: 12,
@@ -506,16 +506,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#020818',
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.3)',
+    backgroundColor: '#1e50ccff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   viewerAvatarText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#60a5fa',
+    color: '#fff',
   },
   viewerName: {
     marginLeft: 12,

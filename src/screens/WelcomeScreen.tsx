@@ -7,6 +7,7 @@ import {
   Dimensions,
   StatusBar,
   TouchableOpacity,
+  Linking,
 } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -123,9 +124,9 @@ export default function WelcomeScreen({ navigation }: any) {
         <Animated.View style={descStyle}>
           <Text style={styles.description}>
             Read our{' '}
-            <Text style={styles.link}>Privacy Policy</Text>
+            <Text style={styles.link} onPress={() => Linking.openURL('https://tether-policy-page.vercel.app/')}>Privacy Policy</Text>
             {'. Tap "Agree and continue"\nto accept our '}
-            <Text style={styles.link}>Terms of Service</Text>
+            <Text style={styles.link} onPress={() => Linking.openURL('https://tether-policy-page.vercel.app/')}>Terms of Service</Text>
             {'.'}
           </Text>
         </Animated.View>

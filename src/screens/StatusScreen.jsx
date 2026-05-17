@@ -23,12 +23,14 @@ import StatusList from '../components/StatusList';
 import StatusPreview from '../components/StatusPreview';
 import useLayoutStore from '../Store/useLayoutStore';
 import useStatusStore from '../Store/useStatusStore';
+import { useContactStore } from '../Store/useContactStore';
 import useUserStore from '../Store/useUserStore';
 import formatTimestamp from '../Utils/data';
 
 export default function StatusScreen() {
   const { setActiveTab } = useLayoutStore();
   const { user } = useUserStore();
+  const { syncContacts } = useContactStore();
 
   // Status Store
   const {
@@ -64,6 +66,7 @@ export default function StatusScreen() {
   useEffect(() => {
     setActiveTab('updates');
     fetchStatuses();
+    syncContacts();
     initializeSocket();
 
     return () => {
@@ -529,16 +532,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#06234f',
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.2)',
+    backgroundColor: '#1e50ccff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#60a5fa',
+    color: '#fff',
   },
   statusRing: {
     position: 'absolute',
