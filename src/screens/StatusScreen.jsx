@@ -320,9 +320,9 @@ export default function StatusScreen() {
           {!loading && otherStatus?.length > 0 && (
             <View style={styles.recentSection}>
               <Text style={styles.recentTitle}>Recent Updates</Text>
-              {otherStatus.map((contact) => (
+              {otherStatus.map((contact, index) => (
                 <StatusList
-                  key={contact?.id}
+                  key={contact?.id || contact?._id || index}
                   contact={contact}
                   onPreview={() => handleStatusPreview(contact)}
                 />

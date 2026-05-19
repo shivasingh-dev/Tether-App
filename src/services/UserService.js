@@ -1,4 +1,4 @@
-import axiosInstance from './UrlService'
+import axiosInstance, { API_BASE_URL } from './UrlService'
 import useUserStore from '../Store/useUserStore'
 
 export const sendPhoneNumOtp = async (phoneNumber, fullName) => {
@@ -48,14 +48,42 @@ export const loginWithEmail = async (email, password) => {
 
 export const updateUserProfile = async (updateData) => {
   try {
-    const response = await axiosInstance.put('/update/profile', updateData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
+    const token = useUserStore.getState().token;
+    const responsePromise = new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", `${API_BASE_URL}/update/profile`);
+      
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const resData = JSON.parse(xhr.responseText);
+            resolve(resData);
+          } catch (err) {
+            reject(new Error("Failed to parse response JSON"));
+          }
+        } else {
+          reject(new Error(`Profile update failed with status: ${xhr.status}`));
+        }
+      };
+      
+      xhr.onerror = () => {
+        reject(new Error("Network request failed (XHR)"));
+      };
+      
+      xhr.ontimeout = () => {
+        reject(new Error("Request timed out"));
+      };
+
+      xhr.send(updateData);
+    });
+
+    return await responsePromise;
   } catch (error) {
-    throw error?.response?.data || { message: error.message }
+    throw { message: error.message };
   }
 }
 

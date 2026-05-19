@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { disconnectSocket, getSocket } from "../Services/ChatServices";
 import { Socket } from "socket.io-client";
-import axiosInstance from "../Services/UrlService";
+import axiosInstance, { API_BASE_URL } from "../Services/UrlService";
 import useUserStore from "./useUserStore";
 import { saveMediaToLocal } from "../Utils/MediaUtils";
 
@@ -386,14 +386,45 @@ export const useChatStore = create((set, get) => ({
         });
       }
 
-      const { data } = await axiosInstance.post(
-        "/chats/send-message",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          timeout: 60000,
+      const token = useUserStore.getState().token;
+      const socketObj = getSocket();
+
+      const responsePromise = new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API_BASE_URL}/chats/send-message`);
+        
+        if (token) {
+          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
         }
-      );
+        if (socketObj && socketObj.id) {
+          xhr.setRequestHeader("x-socket-id", socketObj.id);
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resData = JSON.parse(xhr.responseText);
+              resolve(resData);
+            } catch (err) {
+              reject(new Error("Failed to parse response JSON"));
+            }
+          } else {
+            reject(new Error(`Upload failed with status: ${xhr.status}`));
+          }
+        };
+        
+        xhr.onerror = () => {
+          reject(new Error("Network request failed (XHR)"));
+        };
+        
+        xhr.ontimeout = () => {
+          reject(new Error("Request timed out"));
+        };
+
+        xhr.send(formData);
+      });
+
+      const data = await responsePromise;
       const messageData = data.data || data;
 
       // replace optimistic message with real one and update conversation's last message

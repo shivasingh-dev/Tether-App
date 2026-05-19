@@ -7,9 +7,9 @@ import {
   Modal,
   Image,
   Dimensions,
-  SafeAreaView,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   RTCPeerConnection,
   RTCIceCandidate,
@@ -60,6 +60,10 @@ const VideoCallModal = ({ socket }) => {
     toggleAudio,
     clearIncomingCall,
     isAudioEnabled,
+    isRemoteVideoEnabled,
+    isRemoteAudioEnabled,
+    setRemoteVideoEnabled,
+    setRemoteAudioEnabled,
   } = useCallStore();
 
   const { user } = useUserStore();
@@ -140,7 +144,7 @@ const VideoCallModal = ({ socket }) => {
 
     if (stream) {
       stream.getTracks().forEach((track) => {
-        pc.addStream(stream); // react-native-webrtc uses addStream often
+        pc.addTrack(track, stream);
       });
     }
 
@@ -159,8 +163,10 @@ const VideoCallModal = ({ socket }) => {
       }
     };
 
-    pc.onaddstream = (event) => {
-      setRemoteStream(event.stream);
+    pc.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        setRemoteStream(event.streams[0]);
+      }
     };
 
     pc.onconnectionstatechange = () => {
@@ -290,12 +296,13 @@ const VideoCallModal = ({ socket }) => {
     const handleCallEnded = () => endCall();
 
     const handleWebRTCOffer = async ({ offer, senderId, callId }) => {
-      if (!peerConnection) return;
+      const pc = useCallStore.getState().peerConnection;
+      if (!pc) return;
       try {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
         await processQueuedIceCandidate();
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
         socket.emit("webrtc_answer", { answer, receiverId: senderId, callId });
       } catch (error) {
         console.error("Receiver error offer", error);
@@ -303,9 +310,10 @@ const VideoCallModal = ({ socket }) => {
     };
 
     const handleWebRTCAnswer = async ({ answer }) => {
-      if (!peerConnection || peerConnection.signalingState === "closed") return;
+      const pc = useCallStore.getState().peerConnection;
+      if (!pc || pc.signalingState === "closed") return;
       try {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
         await processQueuedIceCandidate();
       } catch (error) {
         console.error("caller answer error", error);
@@ -313,10 +321,11 @@ const VideoCallModal = ({ socket }) => {
     };
 
     const handleWebRTCIceCandidates = async ({ candidate }) => {
-      if (peerConnection && peerConnection.signalingState !== "closed") {
-        if (peerConnection.remoteDescription) {
+      const pc = useCallStore.getState().peerConnection;
+      if (pc && pc.signalingState !== "closed") {
+        if (pc.remoteDescription) {
           try {
-            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
           } catch (error) {
             console.error("Ice candidate error", error);
           }
@@ -326,12 +335,18 @@ const VideoCallModal = ({ socket }) => {
       }
     };
 
+    const handleMediaToggled = ({ isVideoEnabled, isAudioEnabled }) => {
+      if (isVideoEnabled !== undefined) setRemoteVideoEnabled(isVideoEnabled);
+      if (isAudioEnabled !== undefined) setRemoteAudioEnabled(isAudioEnabled);
+    };
+
     socket.on("call_accepted", handleCallAccepted);
     socket.on("call_rejected", handleCallRejected);
     socket.on("call_ended", handleCallEnded);
     socket.on("webrtc_offer", handleWebRTCOffer);
     socket.on("webrtc_answer", handleWebRTCAnswer);
     socket.on("webrtc_ice_candidate", handleWebRTCIceCandidates);
+    socket.on("media_toggled", handleMediaToggled);
 
     return () => {
       socket.off("call_accepted", handleCallAccepted);
@@ -340,8 +355,27 @@ const VideoCallModal = ({ socket }) => {
       socket.off("webrtc_offer", handleWebRTCOffer);
       socket.off("webrtc_answer", handleWebRTCAnswer);
       socket.off("webrtc_ice_candidate", handleWebRTCIceCandidates);
+      socket.off("media_toggled", handleMediaToggled);
     };
   }, [socket, peerConnection, currentCall, incomingCall]);
+
+  const handleToggleVideo = () => {
+    toggleVideo();
+    const participantId = currentCall?.participantId || incomingCall?.callerId;
+    const callId = currentCall?.callId || incomingCall?.callId;
+    if (socket && participantId && callId) {
+      socket.emit("toggle_media", { receiverId: participantId, callId, isVideoEnabled: !isVideoEnabled, isAudioEnabled });
+    }
+  };
+
+  const handleToggleAudio = () => {
+    toggleAudio();
+    const participantId = currentCall?.participantId || incomingCall?.callerId;
+    const callId = currentCall?.callId || incomingCall?.callId;
+    if (socket && participantId && callId) {
+      socket.emit("toggle_media", { receiverId: participantId, callId, isVideoEnabled, isAudioEnabled: !isAudioEnabled });
+    }
+  };
 
   if (!isCallModalOpen && !incomingCall) return null;
 
@@ -373,7 +407,23 @@ const VideoCallModal = ({ socket }) => {
         {shouldShowActiveCall && (
           <View style={styles.activeContainer}>
             {callType === "video" && remoteStream ? (
-              <RTCView streamURL={remoteStream.toURL()} style={styles.remoteVideo} objectFit="cover" />
+              isRemoteVideoEnabled ? (
+                <RTCView streamURL={remoteStream.toURL()} style={styles.remoteVideo} objectFit="cover" />
+              ) : (
+                <View style={[styles.remoteVideo, { backgroundColor: '#1c1c1c', justifyContent: 'center', alignItems: 'center' }]}>
+                  {displayInfo?.avatar ? (
+                    <Image source={{ uri: displayInfo.avatar }} style={styles.avatarLarge} />
+                  ) : (
+                    <View style={[styles.avatarLarge, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+                      <Text style={{ color: '#fff', fontSize: 40, fontWeight: 'bold' }}>
+                        {displayInfo?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={styles.userName}>{displayInfo?.name}</Text>
+                  <Text style={{ color: '#00A884', fontSize: 16, marginTop: 10 }}>Video Paused</Text>
+                </View>
+              )
             ) : (
               <View style={styles.audioPlaceholder}>
                 <Image source={{ uri: displayInfo?.avatar || 'https://via.placeholder.com/150' }} style={styles.avatarLarge} />
@@ -384,17 +434,29 @@ const VideoCallModal = ({ socket }) => {
 
             {callType === "video" && localStream && (
               <View style={styles.localVideoContainer}>
-                <RTCView streamURL={localStream.toURL()} style={styles.localVideo} objectFit="cover" />
+                {isVideoEnabled ? (
+                  <RTCView streamURL={localStream.toURL()} style={styles.localVideo} objectFit="cover" zOrder={1} />
+                ) : (
+                  <View style={[styles.localVideo, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+                    {user?.profilePicture ? (
+                      <Image source={{ uri: user.profilePicture }} style={{ width: 60, height: 60, borderRadius: 30 }} />
+                    ) : (
+                      <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold' }}>
+                        {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                      </Text>
+                    )}
+                  </View>
+                )}
               </View>
             )}
 
             <View style={styles.controls}>
               {callType === "video" && (
-                <TouchableOpacity style={styles.controlBtn} onPress={toggleVideo}>
+                <TouchableOpacity style={styles.controlBtn} onPress={handleToggleVideo}>
                   <Icon name={isVideoEnabled ? "video" : "video-slash"} size={20} color="#fff" />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={styles.controlBtn} onPress={toggleAudio}>
+              <TouchableOpacity style={styles.controlBtn} onPress={handleToggleAudio}>
                 <Icon name={isAudioEnabled ? "microphone" : "microphone-slash"} size={20} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={[styles.controlBtn, styles.btnReject]} onPress={handleEndCall}>

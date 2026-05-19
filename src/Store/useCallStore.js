@@ -14,6 +14,8 @@ const useCallStore = create(
     remoteStream: null,
     isVideoEnabled: true,
     isAudioEnabled: true,
+    isRemoteVideoEnabled: true,
+    isRemoteAudioEnabled: true,
 
     // WEB RTC
     peerConnection: null,
@@ -58,6 +60,14 @@ const useCallStore = create(
 
     setCallStatus: (status) => {
       set({ callStatus: status });
+    },
+
+    setRemoteVideoEnabled: (enabled) => {
+      set({ isRemoteVideoEnabled: enabled });
+    },
+
+    setRemoteAudioEnabled: (enabled) => {
+      set({ isRemoteAudioEnabled: enabled });
     },
 
     addIceCandidate: (candidate) => {
@@ -127,6 +137,8 @@ const useCallStore = create(
         remoteStream: null,
         isVideoEnabled: true,
         isAudioEnabled: true,
+        isRemoteVideoEnabled: true,
+        isRemoteAudioEnabled: true,
         peerConnection: null,
         iceCandidatesQueue: [],
         isCallModalOpen: false,

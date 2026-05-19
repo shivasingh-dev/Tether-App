@@ -1,7 +1,8 @@
 import { getSocket } from "../Services/ChatServices";
-import axiosInstance from "../Services/UrlService";
+import axiosInstance, { API_BASE_URL } from "../Services/UrlService";
 import { create } from "zustand";
 import { Platform } from "react-native";
+import useUserStore from "./useUserStore";
 
 const useStatusStore = create((set, get) => ({
   // state
@@ -86,10 +87,40 @@ const useStatusStore = create((set, get) => ({
         formData.append("content", statusData?.content);
       }
 
-      const { data } = await axiosInstance.post("/status", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: 60000,
+      const token = useUserStore.getState().token;
+      const responsePromise = new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API_BASE_URL}/status`);
+        
+        if (token) {
+          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resData = JSON.parse(xhr.responseText);
+              resolve(resData);
+            } catch (err) {
+              reject(new Error("Failed to parse response JSON"));
+            }
+          } else {
+            reject(new Error(`Status upload failed with status: ${xhr.status}`));
+          }
+        };
+        
+        xhr.onerror = () => {
+          reject(new Error("Network request failed (XHR)"));
+        };
+        
+        xhr.ontimeout = () => {
+          reject(new Error("Request timed out"));
+        };
+
+        xhr.send(formData);
       });
+
+      const data = await responsePromise;
 
       // add status to local state
       if (data?.data) {

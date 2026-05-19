@@ -260,9 +260,6 @@ const ChatScreen = ({ navigation }) => {
 
   const handleVideoCall = () => {
 
-    Alert.alert('Coming Soon', 'Video Call feature will be available in upcoming updates.');
-    return;
-
     if (online) {
       initiateCall(
         receiverId,
@@ -276,9 +273,6 @@ const ChatScreen = ({ navigation }) => {
   };
 
   const handleVoiceCall = () => {
-
-    Alert.alert('Coming Soon', 'Voice Call feature will be available in upcoming updates.');
-    return;
 
     if (online) {
       initiateCall(
@@ -523,31 +517,10 @@ const ChatScreen = ({ navigation }) => {
 
   const handlePickImage = () => {
     setShowAttachMenu(false);
-    launchImageLibrary({ mediaType: 'photo', quality: 0.7, maxWidth: 1024, maxHeight: 1024 }, async res => {
-      if (res.didCancel || res.errorCode) return;
-      const asset = res.assets?.[0];
-      if (!asset) return;
-
-      const fileSize = asset.fileSize || 0;
-      const fileType = asset.type || 'image/jpeg';
-
-      // File size validation
-      if (fileSize > FILE_SIZE_LIMITS.IMAGE.MAX_SIZE) {
-        Alert.alert(
-          'Image Too Large',
-          `Selected image is ${formatFileSize(fileSize)}.\nMaximum allowed: ${FILE_SIZE_LIMITS.IMAGE.LABEL}`,
-        );
-        return;
-      }
-
-      setSelectedFile({
-        uri: asset.uri,
-        type: fileType,
-        name: asset.fileName || 'image.jpg',
-        size: fileSize,
-      });
-      setFilePreviewUri(asset.uri);
-    });
+    Alert.alert(
+      'Coming Soon',
+      'Sending image will be available in upcoming updates.'
+    );
   };
 
   // ── Send text/image ──
@@ -1028,8 +1001,6 @@ const ChatScreen = ({ navigation }) => {
           <View>
             <TouchableOpacity
               onPress={() => {
-                Alert.alert("Coming Soon", "Sending image and video will be available soon!");
-                return;
                 setShowAttachMenu(p => !p);
                 setShowEmojiPanel(false);
               }}

@@ -96,7 +96,7 @@ export default function CallHistoryScreen() {
               { color: item.status === 'completed' ? colors.textMuted : '#ef4444' },
             ]}
           >
-            {item.status === 'completed' ? 'Outgoing' : 'Missed'} •{' '}
+            {item.status === 'completed' ? `Connected (${formatDuration(item.duration)})` : 'Missed'} •{' '}
             {format(new Date(item.timestamp), 'dd MMM, HH:mm')}
           </Text>
         </View>
