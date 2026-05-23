@@ -1045,7 +1045,7 @@ const ChatScreen = ({ navigation }) => {
             }}
             disabled={isSending}
             style={[styles.iBtn, isSending && { opacity: 0.5 }]}
-            activeOpacity={0.7}
+            activeOpacity={0.3}
           >
             <Ionicons
               name={showEmojiPanel ? 'keypad-outline' : 'happy-outline'}

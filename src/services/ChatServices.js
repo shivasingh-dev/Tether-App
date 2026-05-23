@@ -17,7 +17,7 @@ export const initializeSocket = () => {
 
   socket = io(API_BASE_URL, {
     withCredentials: true,
-    transports: ["websocket", "polling"],
+    transports: ["websocket"],
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
   });

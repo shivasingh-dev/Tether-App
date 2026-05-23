@@ -20,26 +20,34 @@ const useStatusStore = create((set, get) => ({
     const socket = getSocket();
     if (!socket) return;
 
-    // Real time status event
-    (socket.on("new_status", (newStatus) => {
+    // Clean up first to avoid duplicate listeners
+    socket.off("new_status");
+    socket.off("status_deleted");
+    socket.off("status_viewed");
+
+    // Real time status events
+    socket.on("new_status", (newStatus) => {
       set((state) => ({
         statuses: state.statuses.some((s) => s?._id === newStatus?._id)
           ? state.statuses
           : [newStatus, ...state.statuses],
       }));
-    }),
-      socket.on("status_deleted", (statusId) => {
-        set((state) => ({
-          statuses: state.statuses.filter((s) => s?._id !== statusId),
-        }));
-      }),
-      socket.on("status_viewed", (statusId, viewers) => {
-        set((state) => ({
-          statuses: state.statuses.map((status) =>
-            status?._id === statusId ? { ...status, viewers } : status,
-          ),
-        }));
+    });
+
+    socket.on("status_deleted", (statusId) => {
+      set((state) => ({
+        statuses: state.statuses.filter((s) => s?._id !== statusId),
       }));
+    });
+
+    // Backend sends a single object: { statusId, viewerId, totalViewers, viewers }
+    socket.on("status_viewed", ({ statusId, viewers }) => {
+      set((state) => ({
+        statuses: state.statuses.map((status) =>
+          status?._id === statusId ? { ...status, viewers } : status,
+        ),
+      }));
+    });
   },
 
   cleanupSocket: () => {
