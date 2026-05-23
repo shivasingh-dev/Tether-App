@@ -186,6 +186,7 @@ const ChatScreen = ({ navigation }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ visible: false, type: null });
   const [isClearing, setIsClearing] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const [showReactionMenu, setShowReactionMenu] = useState(false);
   const [reactionMenuY, setReactionMenuY] = useState(0);
@@ -526,13 +527,23 @@ const ChatScreen = ({ navigation }) => {
   // ── Send text/image ──
   const handleSend = async () => {
     if (!selectedContact || !user?._id) return;
-    if (!message.trim() && !selectedFile) return;
+    const messageToSend = message.trim();
+    const fileToSend = selectedFile;
+    if (!messageToSend && !fileToSend) return;
+    if (isSending) return;
+    setIsSending(true);
+    
+    // Clear input and files immediately when loading starts
+    setMessage('');
+    setSelectedFile(null);
+    setFilePreviewUri(null);
+
     try {
       const response = await sendMessage({
         senderId: user._id,
         receiverId,
-        content: message.trim(),
-        media: selectedFile,
+        content: messageToSend,
+        media: fileToSend,
         messageStatus: 'sent',
         conversationId: selectedContact?.conversationId || selectedContact?.conversation?._id
       });
@@ -547,12 +558,10 @@ const ChatScreen = ({ navigation }) => {
           });
         }
       }
-
-      setMessage('');
-      setSelectedFile(null);
-      setFilePreviewUri(null);
     } catch (err) {
       console.error('handleSend:', err);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -1004,7 +1013,8 @@ const ChatScreen = ({ navigation }) => {
                 setShowAttachMenu(p => !p);
                 setShowEmojiPanel(false);
               }}
-              style={styles.iBtn}
+              disabled={isSending}
+              style={[styles.iBtn, isSending && { opacity: 0.5 }]}
               activeOpacity={0.7}
             >
               <Ionicons name="attach" size={22} color={colors.iconPrimary} />
@@ -1033,7 +1043,8 @@ const ChatScreen = ({ navigation }) => {
               setShowEmojiPanel(p => !p);
               setShowAttachMenu(false);
             }}
-            style={styles.iBtn}
+            disabled={isSending}
+            style={[styles.iBtn, isSending && { opacity: 0.5 }]}
             activeOpacity={0.7}
           >
             <Ionicons
@@ -1051,29 +1062,35 @@ const ChatScreen = ({ navigation }) => {
               setShowEmojiPanel(false);
               setShowAttachMenu(false);
             }}
-            placeholder={blockStatus.isBlockedByMe ? "Unblock to send" : (blockStatus.isBlockedByThem ? "You are blocked" : "Type a message")}
+            placeholder={isSending ? "Sending..." : (blockStatus.isBlockedByMe ? "Unblock to send" : (blockStatus.isBlockedByThem ? "You are blocked" : "Type a message"))}
             placeholderTextColor={colors.textPlaceholder}
             style={styles.textInput}
             multiline
             maxLength={2000}
-            editable={blockStatus.canMessage}
+            editable={blockStatus.canMessage && !isSending}
           />
 
           {showSend ? (
             // Send Button (jab message ya image selected ho)
             <TouchableOpacity
               onPress={handleSend}
-              style={styles.sendBtn}
+              disabled={isSending}
+              style={[styles.sendBtn, isSending && styles.sendBtnDisabled]}
               activeOpacity={0.8}
             >
-              <Ionicons name="send" size={17} color="#fff" />
+              {isSending ? (
+                <ActivityIndicator size="small" color="#fff" style={{ width: 17, height: 17 }} />
+              ) : (
+                <Ionicons name="send" size={17} color="#fff" />
+              )}
             </TouchableOpacity>
           ) : (
             // Microphone Button (jab kuch nahi hai)
             <TouchableOpacity
               onPressIn={startRecording} 
               onPressOut={stopRecording} 
-              style={[styles.sendBtn, isRecording && styles.sendBtnRec]}
+              disabled={isSending}
+              style={[styles.sendBtn, isRecording && styles.sendBtnRec, isSending && styles.sendBtnDisabled]}
               activeOpacity={0.8}
             >
               <Ionicons
@@ -1391,6 +1408,9 @@ const styles = StyleSheet.create({
   },
   sendBtnRec: {
     backgroundColor: '#dc2626', // 🎤 Recording mode mein red color
+  },
+  sendBtnDisabled: {
+    opacity: 0.5,
   },
 
   // Attach

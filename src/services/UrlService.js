@@ -4,7 +4,7 @@ import { getSocket } from './ChatServices';
 
 // export const API_BASE_URL = `http://localhost:8000`;
 
-export const API_BASE_URL = `https://tether-production-8bf7.up.railway.app`;
+export const API_BASE_URL = `https://tether-production-8518.up.railway.app`;
 
 
 const apiUrl = `${API_BASE_URL}/`
@@ -21,12 +21,12 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  
+
   const socket = getSocket();
   if (socket && socket.id) {
     config.headers['x-socket-id'] = socket.id;
   }
-  
+
   return config;
 });
 
